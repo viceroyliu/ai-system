@@ -1,0 +1,26 @@
+# Notion API 配置
+notion:
+  token: "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"
+
+  databases:
+    复盘: "2edfd8a80a7980b19dd9c11447764b33"
+    目标: "2edfd8a80a7980d78eb5ca3b9a112d19"
+    闪念: "2edfd8a80a79803bb751e98692eff8a3"
+    AI笔记: "2edfd8a80a798074bbb6fa89d8ddd99e"
+
+# AI 模型配置
+ai:
+  model: "qwen2.5:14b-instruct"
+
+# 同步设置
+sync:
+  interval: 3600
+
+# 复盘自动总结
+review:
+  auto_summary: true
+  auto_title: true
+
+# 双向同步
+notes:
+  flow: "bidirectional"

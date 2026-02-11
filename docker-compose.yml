@@ -1,0 +1,66 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "3000:8080"
+    volumes:
+      - open-webui:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    restart: unless-stopped
+
+  tg-monitor:
+    image: python:3.11-slim
+    container_name: tg-monitor
+    volumes:
+      - /Users/viceroy/ai-system:/app
+    working_dir: /app
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      bash -c "
+        pip install -q telethon 'python-socks[asyncio]' &&
+        python /app/telegram/tg_monitor.py
+      "
+    restart: unless-stopped
+
+  tg-web:
+    image: python:3.11-slim
+    container_name: tg-web
+    ports:
+      - "3001:3001"
+    volumes:
+      - /Users/viceroy/ai-system:/app
+    working_dir: /app
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      bash -c "
+        pip install -q flask requests &&
+        python /app/telegram/web/server.py
+      "
+    restart: unless-stopped
+
+  ai-sync:
+    image: python:3.11-slim
+    container_name: ai-sync
+    ports:
+      - "5100:5100"
+    volumes:
+      - /Users/viceroy/ai-system:/app
+      - /Users/viceroy/Code/blogs:/blogs:ro
+      - open-webui:/webui-data:ro
+    working_dir: /app
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      bash -c "
+        pip install -q 'notion-client>=2.2.0' chromadb pyyaml flask requests &&
+        python /app/sync/sync_service.py
+      "
+    restart: unless-stopped
+
+volumes:
+  open-webui:
+    external: true

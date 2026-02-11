@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telegram Web</title>
+  <link rel="icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/style.css?v=6">
+</head>
+<body data-theme="dark">
+  <div class="app">
+    <!-- 需求栏 -->
+    <div class="sidebar-reqs">
+      <div class="sidebar-header">
+        <div class="sidebar-title">需求</div>
+        <button class="add-btn" onclick="showAddReqModal()">+</button>
+      </div>
+      <div class="reqs-list" id="reqs"></div>
+    </div>
+    
+    <!-- 聊天列表 -->
+    <div class="sidebar-chats">
+      <div class="sidebar-header">
+        <div class="sidebar-title">聊天</div>
+        <button class="btn-text" onclick="clearUnread()">全部已读</button>
+      </div>
+      <div class="chats-list" id="chats"></div>
+    </div>
+    
+    <!-- 主消息区域 -->
+    <div class="main-area">
+      <!-- 顶部工具栏 -->
+      <div class="topbar">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+          <input type="text" id="search-input" placeholder="搜索消息..." oninput="onSearch(this.value)">
+        </div>
+        
+        <div class="topbar-right">
+          <div class="status-badge offline" id="status">
+            <span class="status-dot offline"></span>离线
+          </div>
+          <button class="icon-btn" onclick="toggleTheme()" title="切换主题">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+            </svg>
+          </button>
+          <button class="icon-btn" onclick="showSettings()" title="设置">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 聊天头部 -->
+      <div class="chat-header" id="header">
+        <div class="header-avatar">?</div>
+        <div class="header-info">
+          <div class="header-name">选择聊天</div>
+          <div class="header-desc">从左侧列表选择</div>
+        </div>
+      </div>
+      
+      <!-- 消息列表 -->
+      <div class="messages" id="msgs">
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          </svg>
+          <p>选择聊天开始</p>
+        </div>
+      </div>
+      
+      <!-- 输入框 -->
+      <div class="input-section">
+        <div class="input-container">
+          <div class="input-box">
+            <textarea id="input" placeholder="输入消息..." rows="1" 
+                      onkeypress="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleSend();}"></textarea>
+            <button class="ai-btn" onclick="showAiModal()" title="AI 辅助">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                <path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zM7.5 11.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5S9.83 13 9 13s-1.5-.67-1.5-1.5zM16 17H8v-2h8v2zm-1-4c-.83 0-1.5-.67-1.5-1.5S14.17 10 15 10s1.5.67 1.5 1.5S15.83 13 15 13z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 需求详情侧边栏（百叶窗） -->
+  <div class="drawer" id="req-drawer">
+    <div class="drawer-overlay" onclick="closeReqDrawer()"></div>
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <h3>需求详情</h3>
+        <button class="drawer-close" onclick="closeReqDrawer()">×</button>
+      </div>
+      <div class="drawer-body" id="req-detail"></div>
+    </div>
+  </div>
+  
+  <!-- 新建需求弹窗 -->
+  <div class="modal" id="add-req-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">新建需求</div>
+        <button class="modal-close" onclick="hideModal('add-req-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <textarea class="form-textarea" id="req-input" placeholder="输入需求内容..." rows="5"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('add-req-modal')">取消</button>
+        <button class="btn btn-primary" onclick="createReq()">创建</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- AI 辅助弹窗 -->
+  <div class="modal" id="ai-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">🤖 AI 辅助</div>
+        <button class="modal-close" onclick="hideModal('ai-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-field">
+          <label class="form-label">聊天记录（最近 5 条）</label>
+          <textarea class="form-textarea" id="ai-context" rows="5" readonly style="background:var(--bg-1);color:var(--text-2);"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="generateAi()" style="width:100%;margin:16px 0;">
+          ✨ 生成回复建议
+        </button>
+        <div class="form-field">
+          <label class="form-label">AI 回复</label>
+          <textarea class="form-textarea" id="ai-result" rows="4" placeholder="AI 生成的回复..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal('ai-modal')">取消</button>
+        <button class="btn btn-primary" onclick="useAiResult()">使用此回复</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 设置弹窗 -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-box" style="width:600px;max-height:80vh;">
+      <div class="modal-header">
+        <div class="modal-title">设置</div>
+        <button class="modal-close" onclick="hideModal('settings-modal')">×</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto;">
+        <!-- 频道管理 -->
+        <div class="form-field">
+          <label class="form-label">
+            搜索频道
+            <button class="btn btn-secondary btn-sm" style="float:right;font-size:12px;padding:4px 12px;" onclick="refreshChannelList()">刷新列表</button>
+          </label>
+          <input class="form-input" id="channel-search" placeholder="输入频道名称..." oninput="searchChannels(this.value)">
+          <div id="channel-results" style="margin-top:12px;max-height:200px;overflow-y:auto;"></div>
+        </div>
+        
+        <div class="form-field" style="margin-top:24px;">
+          <label class="form-label">已监听频道</label>
+          <div id="active-channels" style="max-height:150px;overflow-y:auto;"></div>
+        </div>
+        
+        <!-- AI 设置 -->
+        <div style="border-top:1px solid var(--border);margin:24px 0;padding-top:24px;">
+          <div class="form-field">
+            <label class="form-label">AI 模型</label>
+            <select class="form-input" id="ai-model" onchange="saveAiModel()">
+              <option>加载中...</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">AI 提示词</label>
+            <textarea class="form-textarea" id="ai-prompt" rows="4" placeholder="自定义提示词..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="saveAiPrompt()">保存提示词</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 图片预览 -->
+  <div class="img-preview" id="preview" onclick="this.classList.remove('show')">
+    <img id="preview-img" style="max-width:90%;max-height:90%;">
+  </div>
+  
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,274 @@
+INFO:     Will watch for changes in these directories: ['/Users/viceroy/ai-system/telegram/web/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [26742] using WatchFiles
+INFO:     Started server process [26747]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:57652 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57653 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57668 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57669 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57678 - "GET /api/channels?active_only=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57679 - "GET /api/channel_counts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57680 - "GET /api/last_messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57681 - "GET /api/requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57703 - "GET /api/messages?channel_id=5870281763&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57707 - "GET /api/image/771 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57720 - "GET /api/messages?channel_id=3030082218&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57733 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57737 - "GET /api/messages?channel_id=5040232854&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57746 - "GET /api/messages?channel_id=2289309286&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57761 - "GET /api/image/810 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57762 - "GET /api/image/811 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57766 - "GET /api/image/779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57767 - "GET /api/image/756 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57769 - "GET /api/image/755 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57770 - "GET /api/image/728 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57774 - "GET /api/messages?channel_id=5114270384&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57784 - "GET /api/messages?channel_id=2289309286&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57801 - "GET /api/image/728 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57802 - "GET /api/image/755 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57803 - "GET /api/image/756 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57806 - "GET /api/image/779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57807 - "GET /api/image/810 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57808 - "GET /api/image/811 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57825 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57858 - "GET /api/messages?channel_id=5114270384&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57862 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57872 - "GET /api/messages?channel_id=3747343110&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57881 - "GET /api/messages?channel_id=7826858921&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57905 - "GET /api/messages?channel_id=2289309286&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57920 - "GET /api/image/811 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57921 - "GET /api/image/810 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57924 - "GET /api/image/779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57925 - "GET /api/image/756 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57928 - "GET /api/image/755 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57929 - "GET /api/image/728 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57934 - "GET /api/messages?channel_id=5040232854&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57938 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57947 - "GET /api/messages?channel_id=3030082218&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57955 - "GET /api/messages?channel_id=5870281763&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57963 - "GET /api/image/771 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57979 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57996 - "POST /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58012 - "POST /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58016 - "POST /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58020 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58029 - "POST /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58049 - "GET /api/messages?channel_id=3030082218&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58061 - "GET /api/messages?channel_id=5040232854&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58065 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58094 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58124 - "POST /api/send_message HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 419, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/telegram/web/backend/app/routers/messages.py", line 117, in send_message
+    "timestamp": time.time()
+                 ^^^^
+NameError: name 'time' is not defined
+INFO:     127.0.0.1:58129 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58147 - "POST /api/send_message HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 419, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/telegram/web/backend/app/routers/messages.py", line 117, in send_message
+    "timestamp": time.time()
+                 ^^^^
+NameError: name 'time' is not defined
+INFO:     127.0.0.1:58167 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58208 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58210 - "GET /api/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58217 - "GET /api/channels?active_only=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58220 - "GET /api/channel_counts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58221 - "GET /api/last_messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58223 - "GET /api/requirements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58257 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58289 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58311 - "GET /api/messages?channel_id=2289309286&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58327 - "GET /api/image/728 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58328 - "GET /api/image/755 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58329 - "GET /api/image/756 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58333 - "GET /api/image/779 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58334 - "GET /api/image/810 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58335 - "GET /api/image/811 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58344 - "GET /api/messages?channel_id=5040232854&q=&limit=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58351 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58380 - "POST /api/ai_assist HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58394 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58480 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58498 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58533 - "POST /api/send_message HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 419, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 84, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/applications.py", line 123, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 146, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 762, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 782, in app
+    await route.handle(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 297, in handle
+    await self.app(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 77, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
+    raise exc
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/starlette/routing.py", line 72, in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 299, in app
+    raise e
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 294, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/venv/lib/python3.11/site-packages/fastapi/routing.py", line 191, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viceroy/ai-system/telegram/web/backend/app/routers/messages.py", line 117, in send_message
+    "timestamp": time.time()
+                 ^^^^
+NameError: name 'time' is not defined
+INFO:     127.0.0.1:58537 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58587 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58624 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58643 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58655 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58693 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58730 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58759 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58791 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58822 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58851 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58887 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58915 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58950 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58984 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59015 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59043 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59076 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59171 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59495 - "GET /api/status HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/routers/messages.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [26747]
+INFO:     Started server process [27324]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
