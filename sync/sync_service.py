@@ -19,7 +19,7 @@ BASE_DIR = Path("/app") if Path("/app").exists() else Path.home() / "ai-system"
 DATA_DIR = BASE_DIR / "data"
 CONFIG_PATH = BASE_DIR / "config/notion.yaml"
 SYNC_STATE_PATH = DATA_DIR / "sync_state.json"
-CHROMA_PATH = DATA_DIR / "chroma_db"
+CHROMA_PATH = DATA_DIR / "vector-db"
 WEBUI_DB_PATH = "/webui-data/webui.db"
 
 NOTION_API = "https://api.notion.com/v1"
