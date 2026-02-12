@@ -1,6 +1,6 @@
 # Notion API 配置
 notion:
-  token: "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"
+  token: "your-notion-token-here"
 
   databases:
     复盘: "2edfd8a80a7980b19dd9c11447764b33"

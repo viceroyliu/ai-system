@@ -1,6 +1,6 @@
 # 🧠 第二大脑系统 - 项目状态
 
-> **最后更新**：2026-02-12  
+> **最后更新**：2026-02-13  
 > **维护者**：Viceroy  
 > **GitHub**：https://github.com/viceroyliu/ai-system
 
@@ -86,7 +86,7 @@
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
 │  │ ChromaDB    │    │ SQLite      │    │ Notion      │         │
 │  │ 向量索引     │    │ TG 消息     │    │ 笔记/复盘    │         │
-│  │ (待确认状态) │    │ ✅ 正常     │    │ ✅ 已连接    │         │
+│  │ ✅ 正常     │    │ ✅ 正常     │    │ ✅ 已连接    │         │
 │  └─────────────┘    └─────────────┘    └─────────────┘         │
 └─────────────────────────────────────────────────────────────────┘
           ▲                  ▲                  ▲
@@ -107,48 +107,62 @@
 
 ```
 ~/ai-system/
-├── config/                      # 配置文件
-│   ├── notion.yaml             # Notion API + 数据库 ID ✅
-│   └── telegram.yaml           # Telegram 配置 ✅
+├── config/                      # 配置文件 ✅ Git 跟踪
+│   ├── notion.yaml             # Notion API + 数据库 ID
+│   └── telegram.yaml           # Telegram 配置
 │
-├── data/                        # 运行时数据
-│   ├── vector-db/              # 向量数据库存储
-│   ├── telegram.db             # Telegram 消息 SQLite ✅
-│   ├── telegram_images/        # TG 图片 ✅
-│   ├── ai_monitor.session      # Telegram 登录会话 ✅
-│   ├── sync_state.json         # 同步状态 ✅
-│   ├── tg_status.json          # TG 连接状态 ✅
-│   └── send_queue.json         # 待发送消息队列 ✅
+├── data/                        # 运行时数据 ❌ 不上传 Git
+│   ├── vector-db/              # 向量数据库（统一路径）
+│   │   ├── blog (201条)        # 本地博客笔记
+│   │   └── notion (346条)      # Notion 同步数据
+│   ├── telegram.db             # Telegram 消息 SQLite
+│   ├── telegram_images/        # TG 图片
+│   ├── *.session               # Telegram 登录凭证
+│   └── *.json                  # 状态文件
 │
-├── cache/
-│   └── chroma/                 # ChromaDB 缓存
-│
-├── sync/                        # 同步服务
+├── sync/                        # 同步服务 ✅ Git 跟踪
 │   ├── sync_service.py         # 主同步服务
-│   ├── notion_sync.py          # Notion 同步
 │   └── Dockerfile
 │
-├── telegram/                    # Telegram 模块
-│   ├── tg_monitor.py           # 消息监听服务 ✅
+├── telegram/                    # Telegram 模块 ✅ Git 跟踪
+│   ├── tg_monitor.py           # 消息监听服务
 │   ├── tg_local.py             # 本地调试版
 │   ├── modules/
-│   │   └── requirement_sync.py # 需求自动提取 ✅
+│   │   └── requirement_sync.py # 需求自动提取
 │   └── web/
 │       ├── server.py           # Web 服务
 │       └── templates/
 │
-├── scripts/                     # 工具脚本
-│   └── flomo2notion.py         # Flomo 导入 ✅
+├── scripts/                     # 工具脚本 ✅ Git 跟踪
+│   └── flomo2notion.py         # Flomo 导入
 │
-├── logs/                        # 日志
-├── venv/                        # Python 虚拟环境
+├── logs/                        # 日志 ❌ 不上传 Git
+├── venv/                        # Python 虚拟环境 ❌ 不上传 Git
 │
 ├── docker-compose.yml          # Docker 编排 ✅
 ├── start.sh                    # 启动脚本 ✅
 ├── stop.sh                     # 停止脚本 ✅
-├── diagnose.sh                 # 诊断脚本 ✅
+├── check_system.sh             # 诊断脚本 ✅
+├── .gitignore                  # Git 忽略规则 ✅
 └── STATUS.md                   # 本文档 ✅
 ```
+
+---
+
+## 📊 向量数据库
+
+### Collection 说明
+
+| Collection | 内容 | 数量 | 查询指令 |
+|------------|------|------|----------|
+| `blog` | 本地博客笔记 | 201 条 | `ai-blog` |
+| `notion` | Notion 同步（复盘/目标/闪念/AI笔记） | 346 条 | `ai-notion` |
+| **总计** | | **547 条** | `ai-list` |
+
+### 数据来源
+
+- **blog**: 来自 `~/Code/blogs/` 目录的 Markdown 文件
+- **notion**: 来自 Notion 四个数据库的自动同步
 
 ---
 
@@ -160,6 +174,7 @@
 - [x] Ollama 本地模型运行
 - [x] 启动/停止/诊断脚本
 - [x] 终端快捷指令 (.zshrc)
+- [x] Git 仓库清理，配置 .gitignore
 
 ### Notion 集成
 - [x] API 连接
@@ -167,6 +182,7 @@
 - [x] 双向同步（WebUI Notes ↔ Notion）
 - [x] AI 自动生成标题
 - [x] Flomo 历史数据导入
+- [x] 向量数据库索引
 
 ### Telegram 集成
 - [x] User API 登录（通过 Surge 代理）
@@ -179,23 +195,11 @@
 - [x] Web 管理界面
 - [x] AI 辅助回复
 
----
-
-## ❌ 已知问题
-
-### 待确认
-
-| 问题 | 说明 | 优先级 |
-|------|------|--------|
-| ChromaDB 状态 | 之前有 compaction 错误，需要确认当前是否正常 | 🔴 高 |
-| 向量数据库路径 | `cache/chroma` vs `data/vector-db`，需要统一 | 🟡 中 |
-
-### 已知 Bug
-
-| 问题 | 文件 | 状态 |
-|------|------|------|
-| `time` 模块未导入 | backend/routers/messages.py | 待修复 |
-| 图片 API 404 | backend | 待排查 |
+### 向量数据库
+- [x] ChromaDB 集成
+- [x] 路径统一 (`data/vector-db`)
+- [x] Collection 规范命名 (`blog` / `notion`)
+- [x] 搜索 API
 
 ---
 
@@ -235,23 +239,25 @@ ai-down             # 停止所有服务
 ai-restart          # 重启服务
 
 # === 同步操作 ===
-ai-sync             # 触发同步
+ai-sync             # 触发 Notion 同步
 ai-status           # 查看同步状态
 ai-logs             # 查看同步日志
 
 # === 知识库 ===
-ai-search-kb "关键词"  # 搜索知识库
-ai-list             # 列出知识库内容
+ai-list             # 显示所有 collection 概览
+ai-blog             # 查看本地博客（按分类统计）
+ai-notion           # 查看 Notion 数据（按数据库统计）
+ai-search-kb "词"   # 搜索知识库
 
 # === 配置 ===
 ai-config           # 查看配置
 ai-edit             # 编辑配置
+ai-check            # 运行系统诊断
 
 # === 内存管理 ===
 ai-stop-model       # 卸载模型释放内存
 
 # === Telegram ===
-tg-start            # 启动监听（本地调试）
 tg-logs             # 查看监听日志
 tg-restart          # 重启监听服务
 tg-status           # 查看连接状态
@@ -271,11 +277,20 @@ tg-status           # 查看连接状态
 
 ## 📅 更新日志
 
+### 2026-02-13
+- 向量数据库 Collection 重命名：`blog` + `notion`
+- 修复 Notion 同步 401 错误（Token 更新）
+- 优化快捷指令：ai-list / ai-blog / ai-notion 统一显示格式
+- 清理旧的重复 collection
+
 ### 2026-02-12
-- 更新 STATUS.md 为项目唯一状态文档
-- 更新模型配置：qwen3:32b + qwen2.5:14b + deepseek-coder:33b
-- 添加快捷指令参考
-- 移除过时的架构描述
+- Git 仓库大清理
+  - 移除 venv/ (297MB)
+  - 移除 cache/chroma/ (167MB)
+  - 移除 data/ (敏感数据)
+  - 配置 .gitignore
+- 向量数据库路径统一为 `data/vector-db`
+- 修复 sync_service.py 数据库路径
 
 ### 2026-02-01
 - Telegram 监听服务完善
@@ -299,4 +314,4 @@ tg-status           # 查看连接状态
 
 **示例开场白：**
 > 我在继续"第二大脑"项目。STATUS.md 已在项目知识库中。  
-> 我现在需要 [修复向量数据库 / 添加 GitLab 集成 / ...]
+> 我现在需要 [添加 GitLab 集成 / 优化 Telegram 自动化 / ...]

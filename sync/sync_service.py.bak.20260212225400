@@ -65,7 +65,7 @@ class NotionSync:
             "Notion-Version": "2022-06-28"
         }
         self.chroma = chromadb.PersistentClient(path=str(CHROMA_PATH))
-        self.collection = self.chroma.get_or_create_collection("notion")
+        self.collection = self.chroma.get_or_create_collection("knowledge")
         self.ai_model = config.get('ai', {}).get('model', 'qwen2.5:14b-instruct')
         self.ollama_url = "http://host.docker.internal:11434"
         self.flow = config.get('notes', {}).get('flow', 'bidirectional')
