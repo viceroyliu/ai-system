@@ -1,12 +1,16 @@
-# Notion API 配置
-notion:
-  token: "your-notion-token-here"
+# Notion 同步配置
+# ================
 
+notion:
+  # Notion API Token (从 https://www.notion.so/my-integrations 获取)
+  token: "your-notion-token-here"
+  
+  # 数据库 ID
   databases:
-    复盘: "2edfd8a80a7980b19dd9c11447764b33"
-    目标: "2edfd8a80a7980d78eb5ca3b9a112d19"
-    闪念: "2edfd8a80a79803bb751e98692eff8a3"
-    AI笔记: "2edfd8a80a798074bbb6fa89d8ddd99e"
+    复盘: "database-id-1"
+    目标: "database-id-2"
+    闪念: "database-id-3"
+    AI笔记: "database-id-4"
 
 # AI 模型配置
 ai:
@@ -14,13 +18,31 @@ ai:
 
 # 同步设置
 sync:
-  interval: 3600
+  interval: 3600  # 自动同步间隔（秒），0 表示禁用自动同步
 
-# 复盘自动总结
+# 复盘数据库特殊设置
 review:
-  auto_summary: true
-  auto_title: true
+  auto_title: false  # 是否自动为无标题页面生成标题
 
-# 双向同步
+# 笔记同步模式
+# ================
+# 三种可选模式：
+#
+# 1. bidirectional (双向同步)
+#    - WebUI 笔记 → Notion AI笔记
+#    - Notion AI笔记 → WebUI 笔记
+#    - 所有 Notion 数据库 → 向量库
+#    ⚠️ 注意：此模式需要 ai-sync 对 WebUI 数据库有写入权限
+#
+# 2. webui_to_notion (单向：WebUI → Notion)
+#    - WebUI 笔记 → Notion AI笔记
+#    - 所有 Notion 数据库 → 向量库
+#    ✅ 推荐：稳定，不会影响 WebUI
+#
+# 3. notion_to_webui (单向：Notion → WebUI)
+#    - Notion AI笔记 → WebUI 笔记
+#    - 所有 Notion 数据库 → 向量库
+#    ⚠️ 注意：需要 ai-sync 对 WebUI 数据库有写入权限
+#
 notes:
-  flow: "bidirectional"
+  flow: "webui_to_notion"

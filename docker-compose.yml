@@ -50,7 +50,8 @@ services:
     volumes:
       - /Users/viceroy/ai-system:/app
       - /Users/viceroy/Code/blogs:/blogs:ro
-      - open-webui:/webui-data:ro
+      - open-webui:/webui-data
+      - chroma-cache:/root/.cache/chroma    # 缓存 onnx 模型
     working_dir: /app
     environment:
       - TZ=Asia/Shanghai
@@ -64,3 +65,5 @@ services:
 volumes:
   open-webui:
     external: true
+  chroma-cache:    # 新增：缓存 onnx 模型
+    name: chroma-cache
