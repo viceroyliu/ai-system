@@ -299,7 +299,7 @@ class NotionSync:
         try:
             return {
                 "documents": self.collection.count(),
-                "collections": [c["name"] for c in self.chroma.list_collections()],
+                "collections": [c.name for c in self.chroma.list_collections()],
             }
         except Exception:
             return {"documents": 0, "collections": []}
