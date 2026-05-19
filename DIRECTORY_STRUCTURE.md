@@ -1,128 +1,87 @@
-# 📁 AI System 目录结构规范
+# 📁 AI System 目录结构
 
-## 目录分类
+## 完整目录
 
 ```
 ~/ai-system/
 │
-├── 📦 代码文件 (需要 Git 跟踪)
-│   ├── config/              # 配置文件模板
-│   ├── sync/                # 同步服务代码
-│   ├── telegram/            # Telegram 模块代码
-│   ├── scripts/             # 工具脚本
-│   ├── docker-compose.yml   # Docker 编排
-│   ├── start.sh             # 启动脚本
-│   ├── stop.sh              # 停止脚本
-│   ├── cleanup.sh           # 清理脚本
-│   ├── check_system.sh      # 诊断脚本
-│   ├── STATUS.md            # 项目状态
-│   └── README.md            # 项目说明
+├── 📦 代码文件 (Git 跟踪)
+│   ├── config/
+│   │   └── notion.yaml         # 唯一配置文件
+│   ├── sync/
+│   │   └── sync_service.py     # 同步服务主程序（含 Web 监控）
+│   ├── scripts/
+│   │   └── flomo2notion.py     # Flomo HTML → Notion 闪念导入
+│   ├── data/                    # 敏感数据（不上 Git）
+│   ├── logs/                    # 日志（不上 Git）
+│   ├── STATUS.md               # 项目状态
+│   ├── DIRECTORY_STRUCTURE.md   # 本文档
+│   └── ERRORS.md               # 错误记录
 │
-├── 🔒 敏感数据 (不要上传 Git)
+├── 🔒 敏感数据 (不上 Git)
 │   └── data/
-│       ├── vector-db/       # 向量数据库 (统一使用这个)
-│       ├── telegram.db      # Telegram 消息数据库
-│       ├── telegram_images/ # Telegram 图片
-│       ├── *.session        # Telegram 登录凭证
-│       ├── sync_state.json  # 同步状态
-│       └── tg_status.json   # TG 连接状态
+│       ├── vector-db/          # ChromaDB 向量数据库
+│       ├── chroma_db/          # 旧版向量库（可删除）
+│       ├── sync_state.json     # 同步映射和状态
+│       ├── *.json              # 缓存和日志
+│       └── webui.db            # WebUI 数据库
 │
-├── 📋 日志 (不要上传 Git)
-│   └── logs/
-│       ├── monitor.log      # TG 监听日志
-│       ├── sync.log         # 同步日志
-│       └── web.log          # Web 服务日志
-│
-└── 🐍 Python 环境 (不要上传 Git)
-    └── venv/                # 虚拟环境
+└── 📋 日志 (不上 Git)
+    └── logs/
+        └── sync.log            # 同步服务日志
 ```
 
-## 向量数据库统一规范
+## 向量数据库
 
-**统一使用**: `~/ai-system/data/vector-db/`
+**使用路径**: `~/ai-system/data/vector-db/`
 
-| Collection 名称 | 内容 | 说明 |
-|----------------|------|------|
-| `notion_knowledge` | 博客笔记 + Notion 数据 | 所有知识库内容 |
+| Collection | 内容 |
+|------------|------|
+| `knowledge` | 所有 Notion 页面内容（用于语义搜索）|
 
-**废弃的路径** (应删除):
-- `cache/chroma/` - 空目录，已废弃
-- `data/chroma_db/` - 如果存在，需要迁移或删除
+**旧路径**（可删除）: `data/chroma_db/`
 
 ## 配置文件说明
 
 ### config/notion.yaml
+
+所有配置集中在这一文件：
+
 ```yaml
 notion:
-  token: "your-token"  # Notion API Token
+  token: "ntn_xxx"
   databases:
-    复盘: "database-id"
-    目标: "database-id"
-    闪念: "database-id"
-    AI笔记: "database-id"
+    复盘: "id"
+    目标: "id"
+    闪念: "id"
+    AI笔记: "id"
 
-ai:
-  model: "qwen2.5:14b-instruct"
+lm_studio:
+  url: "http://localhost:1234/v1"
+  default_model: "qwen2.5:14b-instruct"
+
+web:
+  port: 5100
 
 sync:
-  interval: 3600
+  interval: 3600   # 秒，0=禁用自动同步
 
-notes:
-  flow: "bidirectional"
-```
-
-### config/telegram.yaml
-```yaml
-telegram:
-  api_id: 12345
-  api_hash: "your-hash"
-  proxy:
-    type: "http"
-    host: "127.0.0.1"
-    port: 6152
+review:
+  auto_title: true
 ```
 
 ## Git 工作流
 
 ```bash
-# 首次设置
-cp .gitignore ~/ai-system/
 cd ~/ai-system
-git add .gitignore
 
-# 日常提交 (自动忽略敏感文件)
+# 忽略敏感文件（已有 .gitignore）
 git add .
-git commit -m "your message"
+git commit -m "update"
 git push
 
-# 如果之前已经提交了敏感文件，需要从历史中删除
+# 如果之前误提交了敏感文件，从历史删除
 git rm -r --cached data/
-git rm -r --cached venv/
 git rm -r --cached logs/
-git rm --cached *.session
-git commit -m "Remove sensitive files from tracking"
-```
-
-## 新环境部署
-
-```bash
-# 1. 克隆代码
-git clone https://github.com/viceroyliu/ai-system.git
-cd ai-system
-
-# 2. 创建必要目录
-mkdir -p data logs
-
-# 3. 创建虚拟环境
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt  # 如果有的话
-
-# 4. 复制配置文件并填入真实值
-cp config/notion.yaml.example config/notion.yaml
-cp config/telegram.yaml.example config/telegram.yaml
-# 编辑配置文件...
-
-# 5. 启动服务
-./start.sh
+git commit -m "remove sensitive files"
 ```

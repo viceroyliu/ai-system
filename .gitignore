@@ -4,13 +4,15 @@ __pycache__/
 *.pyc
 *.pyo
 
-# 运行时数据
-data/vector-db/*
-data/sync_state.json
-data/telegram/*.session*
+# 运行时数据（整个目录不上 Git）
+data/
 !data/.gitkeep
-!data/vector-db/.gitkeep
-!data/telegram/.gitkeep
+
+# 以下细项保持兼容（data/ 已整体忽略）
+# data/vector-db/
+# data/chroma_db/
+# data/sync_state.json
+# data/telegram/
 
 # 缓存
 cache/
