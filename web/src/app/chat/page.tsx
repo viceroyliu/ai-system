@@ -26,6 +26,37 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [textareaHeight, setTextareaHeight] = useState(48);
+
+  // textarea auto-resize
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      const h = Math.min(el.scrollHeight, 200);
+      setTextareaHeight(h);
+    }
+  }, [input]);
+
+  async function generateAISuggestions(noteItems: NoteItem[]) {
+    if (!noteItems.length) {
+      setSuggestions(["本周复盘应该关注哪些方面？", "我的知识体系有哪些盲点？", "推荐一个适合当前阶段的项目"]);
+      return;
+    }
+    const titles = noteItems.slice(0, 10).map(n => n.title).join("、");
+    try {
+      const lmCfg = models?.current || "";
+      const resp = await apiClient.chat(
+        `基于以下笔记标题，生成 3 个用户可能会问的问题（只输出问题，中文，简洁）：\n${titles}`,
+        lmCfg
+      );
+      const lines = resp.answer.split('\n').filter(l => l.trim());
+      const qs = lines.slice(0, 3).map(l => l.replace(/^[\d.、]+/, '').trim()).filter(l => l.length > 5 && l.length < 50);
+      setSuggestions(qs.length >= 3 ? qs : ["本周复盘应该关注哪些方面？", "我的知识体系有哪些盲点？", "推荐一个适合当前阶段的项目"]);
+    } catch {
+      setSuggestions(["本周复盘应该关注哪些方面？", "我的知识体系有哪些盲点？", "推荐一个适合当前阶段的项目"]);
+    }
+  }
 
   useEffect(() => {
     async function init() {
@@ -38,7 +69,6 @@ export default function ChatPage() {
         setModels(m); setCurrentModel(m.current || "");
         setKbCount(s.documents);
         setNotes(n.notes || []);
-        // 生成 AI 推荐问题
         generateAISuggestions(n.notes || []);
       } catch {}
     }
@@ -46,28 +76,6 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-
-  async function generateAISuggestions(noteItems: NoteItem[]) {
-    if (!noteItems.length) {
-      setSuggestions(["本周复盘应该关注哪些方面？", "我的知识体系有哪些盲点？", "推荐一个适合当前阶段的项目"]);
-      return;
-    }
-    // 取标题列表构造 prompt 让模型推荐问题
-    const titles = noteItems.slice(0, 10).map(n => n.title).join("、");
-    try {
-      const lmCfg = models?.current || "";
-      const resp = await apiClient.chat(
-        `基于以下笔记标题，生成 3 个用户可能会问的问题（只输出问题，中文，简洁）：\n${titles}`,
-        lmCfg
-      );
-      // 解析回复，每行一个问题
-      const lines = resp.answer.split('\n').filter(l => l.trim());
-      const qs = lines.slice(0, 3).map(l => l.replace(/^[\d.、]+/, '').trim()).filter(l => l.length > 5 && l.length < 50);
-      setSuggestions(qs.length >= 3 ? qs : ["本周复盘应该关注哪些方面？", "我的知识体系有哪些盲点？", "推荐一个适合当前阶段的项目"]);
-    } catch {
-      setSuggestions(["本周复盘应该关注哪些方面？", "我的知识体系有哪些盲点？", "推荐一个适合当前阶段的项目"]);
-    }
-  }
 
   async function handleSend() {
     const q = input.trim();
@@ -111,8 +119,8 @@ export default function ChatPage() {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-mark"><span>NX</span></div>
-          <div><div className="logo-text">Nexus</div><div className="logo-sub">AI System · v3.1</div></div>
+          <div className="logo-mark"><span>AI</span></div>
+          <div><div className="logo-text">AI 人生导师</div><div className="logo-sub">v3.1</div></div>
         </div>
         <div className="search-box" onClick={() => router.push("/search")}><span>🔍 搜索知识库...</span><span className="key">⌘K</span></div>
         <div className="nav-section">
@@ -155,7 +163,7 @@ export default function ChatPage() {
           {messages.length === 0 && (
             <div style={{ textAlign: "center", paddingTop: 40 }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>🤖</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--sb-ink)", marginBottom: 8 }}>你好，我是 Nexus AI</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--sb-ink)", marginBottom: 8 }}>你好，我是 AI 人生导师</div>
               <div style={{ fontSize: 12, color: "var(--sb-text-muted)", marginBottom: 20 }}>基于你的 {kbCount ?? "—"} 条笔记和向量数据库回答</div>
 
               {/* AI-generated suggestions */}
@@ -181,7 +189,7 @@ export default function ChatPage() {
             <div key={msg.id} className="chat-msg">
               <div className={`msg-avatar ${msg.role === "user" ? "user" : "ai"}`}>{msg.role === "user" ? "A" : "AI"}</div>
               <div className="msg-content">
-                <span className="msg-role">{msg.role === "user" ? "You" : "Nexus AI"}</span>
+                <span className="msg-role">{msg.role === "user" ? "You" : "AI 人生导师"}</span>
                 <span className="msg-time">{formatTime(msg.timestamp)}{msg.model ? ` · ${msg.model}` : ""}</span>
                 <div className="msg-text">{msg.content}</div>
 
@@ -212,7 +220,7 @@ export default function ChatPage() {
             <div className="chat-msg">
               <div className="msg-avatar ai">AI</div>
               <div className="msg-content">
-                <span className="msg-role">Nexus AI</span>
+                <span className="msg-role">AI 人生导师</span>
                 <div className="msg-text" style={{ color: "var(--sb-text-muted)" }}>思考中<span className="loading-dots">...</span></div>
               </div>
             </div>
@@ -224,7 +232,7 @@ export default function ChatPage() {
           <div className="chat-input-wrap">
             <textarea ref={textareaRef} className="chat-input" placeholder="问点什么…（输入 @ 引用笔记，/ 调用命令）"
               value={input} onChange={e => { setInput(e.target.value); autoResize(); }} onKeyDown={handleKeyDown} rows={1}
-              style={{ height: `${Math.min(textareaRef.current?.scrollHeight || 48, 200)}px` }} />
+              style={{ height: `${textareaHeight}px` }} />
             <div className="chat-input-toolbar">
               <button className="chat-tool-btn">📎 附件</button>
               <button className="chat-tool-btn">🧠 知识库</button>

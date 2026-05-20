@@ -4,20 +4,36 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, type AppSettings } from "@/lib/api";
 
+function mask(s: string, show = 4) {
+  if (!s || s.length < 8) return "****";
+  return s.slice(0, show) + "****" + s.slice(-show);
+}
+
+function intervalLabel(s: number) {
+  if (s <= 0) return "禁用";
+  if (s < 60) return `${s} 秒`;
+  if (s < 3600) return `${Math.floor(s / 60)} 分钟`;
+  return `${Math.floor(s / 3600)} 小时`;
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [lmUrl, setLmUrl] = useState("http://localhost:1234/v1");
+  const [onlineUrl, setOnlineUrl] = useState("");
   const [defaultModel, setDefaultModel] = useState("");
-  const [dbEntries, setDbEntries] = useState<Array<{ name: string; id: string }>>([]);
+  const [dbEntries, setDbEntries] = useState<Array<{ name: string; id: string; editing?: boolean }>>([]);
   const [newDbName, setNewDbName] = useState("");
   const [newDbId, setNewDbId] = useState("");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [syncingInterval, setSyncingInterval] = useState(3600);
+  const [syncingInterval, setSyncingInterval] = useState(21600); // 6h default
+  const [autoSync, setAutoSync] = useState(false);
   const [autoTitle, setAutoTitle] = useState(true);
   const [currentModel, setCurrentModel] = useState("");
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -25,15 +41,17 @@ export default function SettingsPage() {
       const s = await apiClient.getSettings();
       setSettings(s);
       setLmUrl(s.lm_studio?.url || "http://localhost:1234/v1");
+      setOnlineUrl(s.online?.url || "");
       setDefaultModel(s.lm_studio?.default_model || "");
       setCurrentModel(s.lm_studio?.default_model || "");
-      setSyncingInterval(s.sync?.interval || 3600);
+      setSyncingInterval(s.sync?.interval || 21600);
+      setAutoSync(s.sync?.auto || false);
       setAutoTitle(s.sync?.auto_title ?? true);
       const raw = s.notion?.databases || {};
-      const entries: Array<{ name: string; id: string }> = [];
+      const entries: Array<{ name: string; id: string; editing?: boolean }> = [];
       for (const [name, val] of Object.entries(raw)) {
-        const v = val as { id?: string; name?: string } | string;
-        entries.push({ name, id: typeof v === 'string' ? v : (v.id || '') });
+        const v = val as { id?: string } | string;
+        entries.push({ name, id: typeof v === "string" ? v : (v.id || "") });
       }
       setDbEntries(entries);
     } catch (e) {
@@ -44,6 +62,24 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  async function fetchModelsFromUrl(url: string) {
+    setFetchingModels(true);
+    try {
+      const base = url.replace(/\/$/, "");
+      const resp = await fetch(`${base}/models`);
+      if (!resp.ok) throw new Error("Failed");
+      const data = await resp.json();
+      const list: string[] = Array.isArray(data.data)
+        ? data.data.map((m: { id?: string; object?: string }) => m.id || "").filter(Boolean)
+        : [];
+      setAvailableModels(list);
+    } catch {
+      setAvailableModels([]);
+    } finally {
+      setFetchingModels(false);
+    }
+  }
 
   async function handleSave() {
     setSaveError("");
@@ -57,9 +93,14 @@ export default function SettingsPage() {
       await apiClient.saveSettings({
         notion_databases: dbs,
         lm_studio: { url: lmUrl, default_model: defaultModel },
-        sync: { interval: syncingInterval, auto_title: autoTitle },
-      } as Partial<AppSettings> & { notion_databases?: Record<string, { id: string; name: string }>; lm_studio?: { url: string; default_model: string }; sync?: { interval: number; auto_title: boolean } });
-      // 更新当前模型
+        online: { url: onlineUrl },
+        sync: { interval: syncingInterval, auto: autoSync, auto_title: autoTitle },
+      } as Partial<AppSettings> & {
+        notion_databases?: Record<string, { id: string; name: string }>;
+        lm_studio?: { url: string; default_model: string };
+        online?: { url: string };
+        sync?: { interval: number; auto: boolean; auto_title: boolean };
+      });
       if (defaultModel) {
         await apiClient.setModel(defaultModel);
       }
@@ -82,11 +123,8 @@ export default function SettingsPage() {
     setDbEntries(prev => prev.filter((_, i) => i !== idx));
   }
 
-  function intervalLabel(s: number) {
-    if (s <= 0) return "禁用";
-    if (s < 60) return `${s} 秒`;
-    if (s < 3600) return `${Math.floor(s / 60)} 分钟`;
-    return `${Math.floor(s / 3600)} 小时`;
+  function editDb(idx: number) {
+    setDbEntries(prev => prev.map((d, i) => i === idx ? { ...d, editing: !d.editing } : d));
   }
 
   return (
@@ -94,8 +132,8 @@ export default function SettingsPage() {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-mark"><span>NX</span></div>
-          <div><div className="logo-text">Nexus</div><div className="logo-sub">AI System · v3.1</div></div>
+          <div className="logo-mark"><span>AI</span></div>
+          <div><div className="logo-text">人生导师</div><div className="logo-sub">v3.1</div></div>
         </div>
         <div className="search-box" onClick={() => router.push("/search")}><span>🔍 搜索知识库...</span><span className="key">⌘K</span></div>
         <div className="nav-section">
@@ -113,12 +151,10 @@ export default function SettingsPage() {
         </div>
         <div className="sidebar-footer">
           <div className="model-select-label">当前模型</div>
-          <select className="model-select" value={currentModel} onChange={async e => { try { await apiClient.setModel(e.target.value); setCurrentModel(e.target.value); } catch {} }}>
+          <select className="model-select" value={currentModel}
+            onChange={async e => { try { await apiClient.setModel(e.target.value); setCurrentModel(e.target.value); } catch {} }}>
             <option value="">选择模型...</option>
-            <option value="qwen2.5:14b-instruct">qwen2.5:14b-instruct</option>
-            <option value="qwen3:14b">qwen3:14b</option>
-            <option value="qwen3:32b">qwen3:32b</option>
-            <option value="deepseek-coder:33b">deepseek-coder:33b</option>
+            {availableModels.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
       </aside>
@@ -128,7 +164,7 @@ export default function SettingsPage() {
         <div className="topbar">
           <div className="topbar-left">
             <h1>⚙️ 设置</h1>
-            <div className="subtitle">修改配置后保存将自动更新 notion.yaml 并重启相关服务</div>
+            <div className="subtitle">修改配置后保存将自动更新配置并重启相关服务</div>
           </div>
           <div className="topbar-right">
             <button className="btn-primary" onClick={handleSave} disabled={loading}>
@@ -137,39 +173,62 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="content">
-          {saveError && (
-            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#b91c1c" }}>
-              保存失败: {saveError}
-            </div>
-          )}
+        <div className="content" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 0, alignItems: "start" }}>
 
-          <div style={{ maxWidth: 640, display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* LEFT: settings panels */}
+          <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16, maxWidth: 680, overflow: "auto" }}>
 
-            {/* LM Studio Config */}
+            {saveError && (
+              <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#b91c1c" }}>
+                保存失败: {saveError}
+              </div>
+            )}
+
+            {/* Model Config */}
             <div className="card">
               <div className="card-header">
                 <span className="card-title">🤖 模型配置</span>
-                <span className="badge blue">LM Studio</span>
               </div>
               <div className="card-body">
+                {/* Local LM Studio */}
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sb-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>API 地址</div>
-                  <input type="text" value={lmUrl} onChange={e => setLmUrl(e.target.value)}
-                    style={{ width: "100%", background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "8px 12px", fontSize: 13, color: "var(--sb-text)", fontFamily: "inherit", outline: "none" }}
-                    placeholder="http://localhost:1234/v1" />
-                  <div style={{ fontSize: 10, color: "var(--sb-text-muted)", marginTop: 4 }}>LM Studio 的 OpenAI-compatible API 地址（Server → API Server → 确认端口为 1234）</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sb-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>默认模型</div>
-                  <select className="model-select" value={defaultModel} onChange={e => setDefaultModel(e.target.value)} style={{ width: "100%" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sb-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                    🔌 本地 API（LM Studio）
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                    <input type="text" value={lmUrl} onChange={e => setLmUrl(e.target.value)}
+                      style={{ flex: 1, background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "7px 10px", fontSize: 12, color: "var(--sb-text)", fontFamily: "inherit", outline: "none" }}
+                      placeholder="http://localhost:1234/v1" />
+                    <button className="btn-ghost btn-sm" onClick={() => fetchModelsFromUrl(lmUrl)} disabled={fetchingModels}>
+                      {fetchingModels ? "刷新中..." : "🔄 刷新模型"}
+                    </button>
+                  </div>
+                  <select className="model-select" value={defaultModel}
+                    onChange={e => setDefaultModel(e.target.value)}
+                    style={{ width: "100%", marginBottom: 4 }}>
                     <option value="">选择模型...</option>
-                    <option value="qwen2.5:14b-instruct">qwen2.5:14b-instruct</option>
-                    <option value="qwen3:14b">qwen3:14b</option>
-                    <option value="qwen3:32b">qwen3:32b</option>
-                    <option value="deepseek-coder:33b">deepseek-coder:33b</option>
+                    {availableModels.map(m => <option key={m} value={m}>{m}</option>)}
+                    {!availableModels.length && <option value="" disabled>在 LM Studio 加载模型后点击刷新</option>}
                   </select>
-                  <div style={{ fontSize: 10, color: "var(--sb-text-muted)", marginTop: 4 }}>当前: {currentModel || "未选择"} · 在 LM Studio 中加载对应模型后生效</div>
+                  <div style={{ fontSize: 10, color: "var(--sb-text-muted)" }}>
+                    当前: {currentModel || "未选择"} ·{" "}
+                    {availableModels.length > 0
+                      ? `检测到 ${availableModels.length} 个模型`
+                      : "点击刷新从 LM Studio 获取可用模型"}
+                  </div>
+                </div>
+
+                {/* Online API */}
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sb-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                    ☁️ 线上 API（OpenAI-compatible）
+                  </div>
+                  <input type="text" value={onlineUrl} onChange={e => setOnlineUrl(e.target.value)}
+                    style={{ width: "100%", background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "7px 10px", fontSize: 12, color: "var(--sb-text)", fontFamily: "inherit", outline: "none", marginBottom: 4 }}
+                    placeholder="https://api.minimax.chat/v1 或 https://api.openai.com/v1" />
+                  <div style={{ fontSize: 10, color: "var(--sb-text-muted)" }}>
+                    支持 OpenAI-compatible 接口，输入 URL 后按回车刷新模型列表
+                  </div>
                 </div>
               </div>
             </div>
@@ -182,25 +241,35 @@ export default function SettingsPage() {
               </div>
               <div className="card-body">
                 <div style={{ fontSize: 11, color: "var(--sb-text-muted)", marginBottom: 12 }}>
-                  当前 token: <code style={{ background: "var(--sb-muted)", padding: "1px 4px", borderRadius: 3 }}>{settings?.notion?.token || "****"}</code>
-                  &nbsp;·&nbsp;修改数据库配置会立即同步更新
+                  Token: <code style={{ background: "var(--sb-muted)", padding: "1px 4px", borderRadius: 3 }}>{mask(settings?.notion?.token || "secret_xxxx", 8)}</code>
+                  &nbsp;· 点击数据库行可直接编辑
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                   {dbEntries.map((db, idx) => (
-                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <input type="text" value={db.name} onChange={e => setDbEntries(prev => prev.map((d, i) => i === idx ? { ...d, name: e.target.value } : d))}
-                        placeholder="数据库名称" style={{ flex: 1, background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "7px 10px", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
-                      <input type="text" value={db.id} onChange={e => setDbEntries(prev => prev.map((d, i) => i === idx ? { ...d, id: e.target.value } : d))}
-                        placeholder="数据库 ID" style={{ flex: 2, background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "7px 10px", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
-                      <button onClick={() => removeDb(idx)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, color: "#ef4444", padding: "4px 6px" }}>✕</button>
+                    <div key={idx} style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--sb-muted)", borderRadius: 8, padding: "8px 10px" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "var(--sb-text)", flex: 1 }}>{db.name}</span>
+                      {db.editing ? (
+                        <input type="text" value={db.id}
+                          onChange={e => setDbEntries(prev => prev.map((d, i) => i === idx ? { ...d, id: e.target.value } : d))}
+                          style={{ flex: 2, background: "white", border: "1px solid var(--sb-primary)", borderRadius: 6, padding: "4px 8px", fontSize: 12, fontFamily: "inherit", outline: "none" }}
+                          placeholder="Notion Database ID" />
+                      ) : (
+                        <code style={{ flex: 2, fontSize: 11, color: "var(--sb-text-secondary)", background: "white", padding: "3px 8px", borderRadius: 4 }}>
+                          {mask(db.id)}
+                        </code>
+                      )}
+                      <button onClick={() => editDb(idx)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6366f1", padding: "2px 4px" }}>
+                        {db.editing ? "✓" : "✏️"}
+                      </button>
+                      <button onClick={() => removeDb(idx)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#ef4444", padding: "2px 4px" }}>✕</button>
                     </div>
                   ))}
                 </div>
 
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                   <div style={{ flex: 1 }}>
-                    <input type="text" value={newDbName} onChange={e => setNewDbName(e.target.value)} placeholder="新数据库名称"
+                    <input type="text" value={newDbName} onChange={e => setNewDbName(e.target.value)} placeholder="数据库名称"
                       style={{ width: "100%", background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "7px 10px", fontSize: 12, fontFamily: "inherit", outline: "none" }} />
                   </div>
                   <div style={{ flex: 2 }}>
@@ -220,22 +289,35 @@ export default function SettingsPage() {
             <div className="card">
               <div className="card-header"><span className="card-title">🔄 同步设置</span></div>
               <div className="card-body">
+                {/* Auto sync toggle */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--sb-text)" }}>自动同步</div>
-                    <div style={{ fontSize: 11, color: "var(--sb-text-muted)" }}>自动同步间隔：{intervalLabel(syncingInterval)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--sb-text)" }}>自动同步（Auto）</div>
+                    <div style={{ fontSize: 11, color: "var(--sb-text-muted)" }}>本地更改后自动同步 + 每 6 小时全面检查</div>
+                  </div>
+                  <div onClick={() => setAutoSync(v => !v)} style={{ width: 36, height: 20, borderRadius: 10, background: autoSync ? "var(--sb-primary)" : "var(--sb-border)", position: "relative", cursor: "pointer", transition: "background 0.2s" }}>
+                    <div style={{ width: 16, height: 16, borderRadius: "50%", background: "white", position: "absolute", top: 2, left: autoSync ? 18 : 2, transition: "left 0.2s, right 0.2s" }} />
+                  </div>
+                </div>
+
+                {/* Sync interval */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--sb-text)" }}>全面同步间隔</div>
+                    <div style={{ fontSize: 11, color: "var(--sb-text-muted)" }}>当前: {intervalLabel(syncingInterval)}</div>
                   </div>
                   <select value={syncingInterval} onChange={e => setSyncingInterval(Number(e.target.value))}
                     style={{ background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontFamily: "inherit", outline: "none" }}>
-                    <option value={0}>禁用</option>
-                    <option value={300}>5 分钟</option>
-                    <option value={900}>15 分钟</option>
-                    <option value={1800}>30 分钟</option>
+                    <option value={21600}>6 小时</option>
+                    <option value={43200}>12 小时</option>
+                    <option value={86400}>24 小时</option>
                     <option value={3600}>1 小时</option>
                     <option value={7200}>2 小时</option>
+                    <option value={0}>禁用</option>
                   </select>
                 </div>
 
+                {/* Auto title */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--sb-text)" }}>AI 自动命名</div>
@@ -247,28 +329,33 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* System Info */}
-            <div className="card">
+          {/* RIGHT: System Info */}
+          <div style={{ padding: "20px 24px 20px 0", borderLeft: "1px solid var(--sb-border)", height: "100%", overflow: "auto" }}>
+            <div className="card" style={{ marginLeft: 0 }}>
               <div className="card-header"><span className="card-title">ℹ️ 系统信息</span></div>
               <div className="card-body">
                 {[
-                  { label: "API 地址", val: lmUrl },
+                  { label: "本地 API", val: lmUrl },
+                  { label: "线上 API", val: onlineUrl || "未配置" },
                   { label: "向量数据库", val: "/data/vector-db" },
                   { label: "配置文件", val: "config/notion.yaml" },
                   { label: "日志目录", val: "logs/" },
                   { label: "同步间隔", val: intervalLabel(syncingInterval) },
-                  { label: "后端服务", val: settings ? "运行中 (localhost:5100)" : "加载中..." },
+                  { label: "自动同步", val: autoSync ? "开启" : "关闭" },
+                  { label: "后端服务", val: settings ? "运行中 :5100" : "加载中..." },
+                  { label: "Web 服务", val: "运行中 :3000" },
                 ].map(row => (
                   <div key={row.label} className="status-row">
                     <span className="status-label">{row.label}</span>
-                    <span className="status-val" style={{ fontSize: 11, color: "var(--sb-text-secondary)" }}>{row.val}</span>
+                    <span className="status-val" style={{ fontSize: 11, color: "var(--sb-text-secondary)", wordBreak: "break-all", textAlign: "right" }}>{row.val}</span>
                   </div>
                 ))}
               </div>
             </div>
-
           </div>
+
         </div>
       </main>
     </div>

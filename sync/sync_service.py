@@ -1584,6 +1584,8 @@ def api_settings():
         return jsonify({"error": "配置不存在"}), 404
     notion = config.get("notion", {})
     lm = config.get("lm_studio", {})
+    online = config.get("online", {})
+    sync_cfg = config.get("sync", {})
     return jsonify({
         "notion": {
             "token": "****" + (notion.get("token", "")[-8:] if notion.get("token") else ""),
@@ -1593,7 +1595,14 @@ def api_settings():
             "url": lm.get("url", "http://localhost:1234/v1"),
             "default_model": lm.get("default_model", ""),
         },
-        "sync": config.get("sync", {}),
+        "online": {
+            "url": online.get("url", ""),
+        },
+        "sync": {
+            "interval": sync_cfg.get("interval", 21600),
+            "auto": sync_cfg.get("auto", False),
+            "auto_title": sync_cfg.get("auto_title", True),
+        },
         "web": config.get("web", {}),
     })
 
@@ -1615,6 +1624,10 @@ def api_settings_update():
     # 更新 lm_studio
     if "lm_studio" in data:
         config["lm_studio"] = {**config.get("lm_studio", {}), **data["lm_studio"]}
+
+    # 更新线上 API
+    if "online" in data:
+        config["online"] = {**config.get("online", {}), **data["online"]}
 
     # 更新 sync
     if "sync" in data:

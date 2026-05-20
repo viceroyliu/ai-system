@@ -79,8 +79,12 @@ export type AppSettings = {
     url: string;
     default_model: string;
   };
+  online?: {
+    url: string;
+  };
   sync: {
     interval: number;
+    auto: boolean;
     auto_title: boolean;
   };
   web: {

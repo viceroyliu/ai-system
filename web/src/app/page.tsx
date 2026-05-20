@@ -304,8 +304,8 @@ export default function DashboardPage() {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <div className="logo-mark"><span>NX</span></div>
-          <div><div className="logo-text">Nexus</div><div className="logo-sub">AI System · v3.1</div></div>
+          <div className="logo-mark"><span>AI</span></div>
+          <div><div className="logo-text">AI 人生导师</div><div className="logo-sub">v3.1</div></div>
         </div>
         <div className="search-box" onClick={() => router.push("/search")}><span>🔍 搜索知识库...</span><span className="key">⌘K</span></div>
         <div className="nav-section">
