@@ -11,7 +11,7 @@
 │   ├── sync/
 │   │   └── sync_service.py     # 同步服务主程序（含 Web 监控）
 │   ├── scripts/
-│   │   └── flomo2notion.py     # Flomo HTML → Notion 闪念导入
+
 │   ├── data/                    # 敏感数据（不上 Git）
 │   ├── logs/                    # 日志（不上 Git）
 │   ├── STATUS.md               # 项目状态

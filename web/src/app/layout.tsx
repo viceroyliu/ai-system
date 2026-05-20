@@ -5,7 +5,7 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SecondBrain · AI System",
+  title: "Nexus · AI System",
   description: "本地 AI 知识管理系统",
 };
 

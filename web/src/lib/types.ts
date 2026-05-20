@@ -46,3 +46,35 @@ export interface Conversation {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface NoteItem {
+  id: string;
+  title: string;
+  content: string;
+  database: string;
+  updated: string;
+}
+
+export interface AppSettings {
+  notion: {
+    token: string;
+    databases: Record<string, { id: string; name: string }>;
+  };
+  lm_studio: {
+    url: string;
+    default_model: string;
+  };
+  sync: {
+    interval: number;
+    auto_title: boolean;
+  };
+  web: {
+    port: number;
+  };
+}
+
+export interface ChatResponse {
+  answer: string;
+  sources: SearchResult[];
+  model: string;
+}

@@ -28,3 +28,4 @@ config/notion.yaml
 # IDE
 .idea/
 .vscode/
+node_modules

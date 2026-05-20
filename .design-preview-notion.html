@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI System - Notion Style Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  background: #f6f5f4;
+  color: rgba(0,0,0,0.95);
+  min-height: 100vh;
+}
+.container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+/* Header */
+header {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding: 0 24px;
+}
+.header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.logo svg { width: 22px; height: 22px; }
+.nav { display: flex; gap: 4px; }
+.nav a {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0,0,0,0.6);
+  text-decoration: none;
+  border-radius: 5px;
+  transition: all 0.1s;
+}
+.nav a:hover { background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.9); }
+.nav a.active { color: rgba(0,0,0,0.95); }
+.btn-primary {
+  background: #0075de;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.btn-primary:hover { background: #005bab; }
+
+/* Main */
+main { padding: 48px 24px; max-width: 1080px; margin: 0 auto; }
+
+/* Page title */
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgba(0,0,0,0.95);
+  margin-bottom: 8px;
+}
+.page-sub {
+  font-size: 15px;
+  color: rgba(0,0,0,0.5);
+  margin-bottom: 36px;
+}
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 18px 20px;
+  box-shadow: rgba(0,0,0,0.02) 0px 1px 3px;
+}
+.stat-card .label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0,0,0,0.4);
+  margin-bottom: 6px;
+}
+.stat-card .value {
+  font-size: 26px;
+  font-weight: 700;
+  color: rgba(0,0,0,0.95);
+  letter-spacing: -0.02em;
+}
+.stat-card .sub {
+  font-size: 12px;
+  color: rgba(0,0,0,0.4);
+  margin-top: 4px;
+}
+.stat-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1aae39;
+  margin-right: 5px;
+}
+
+/* Content grid */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+.card {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  box-shadow: rgba(0,0,0,0.02) 0px 1px 3px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(0,0,0,0.9);
+}
+.card-body { padding: 12px 20px; }
+
+/* Log items */
+.log-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.log-item:last-child { border-bottom: none; }
+.log-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.log-dot.green { background: #1aae39; }
+.log-dot.orange { background: #dd5b00; }
+.log-dot.gray { background: rgba(0,0,0,0.2); }
+.log-content { flex: 1; }
+.log-title { font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.9); }
+.log-meta { font-size: 12px; color: rgba(0,0,0,0.4); margin-top: 1px; }
+.log-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+.log-badge.success { background: #f0fdf4; color: #1aae39; }
+.log-badge.pending { background: #f6f5f4; color: rgba(0,0,0,0.4); }
+.log-badge.error { background: #fff7f0; color: #dd5b00; }
+
+/* Search */
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.search-input {
+  flex: 1;
+  background: #f6f5f4;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 5px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  color: rgba(0,0,0,0.9);
+  outline: none;
+}
+.search-input:focus { border-color: #0075de; }
+.btn-search {
+  background: #0075de;
+  color: #fff;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-search:hover { background: #005bab; }
+
+/* Model pills */
+.model-section { margin-top: 12px; }
+.model-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0,0,0,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+.model-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+.model-chip {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f6f5f4;
+  border: 1px solid rgba(0,0,0,0.1);
+  color: rgba(0,0,0,0.6);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.model-chip:hover { background: #eee; color: rgba(0,0,0,0.9); }
+.model-chip.active {
+  background: #f2f9ff;
+  border-color: #097fe8;
+  color: #097fe8;
+}
+
+/* Action grid */
+.actions-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.action-btn {
+  background: #f6f5f4;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 6px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.action-btn:hover { background: #eee; border-color: rgba(0,0,0,0.12); }
+.action-icon {
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.action-icon svg { width: 16px; height: 16px; color: rgba(0,0,0,0.5); }
+.action-btn span { font-size: 12px; font-weight: 500; color: rgba(0,0,0,0.7); }
+
+/* DB list */
+.db-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.db-item:last-child { border-bottom: none; }
+.db-name { font-size: 13px; color: rgba(0,0,0,0.85); }
+.db-count { font-size: 12px; color: rgba(0,0,0,0.4); }
+
+/* Section headers */
+.section-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(0,0,0,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 24px 0 12px;
+}
+.section-header:first-of-type { margin-top: 0; }
+
+/* Footer */
+footer {
+  border-top: 1px solid rgba(0,0,0,0.08);
+  padding: 20px 24px;
+  max-width: 1080px;
+  margin: 40px auto 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-text { font-size: 12px; color: rgba(0,0,0,0.4); }
+.footer-badge {
+  font-size: 11px;
+  font-weight: 500;
+  background: #f2f9ff;
+  color: #097fe8;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg viewBox="0 0 22 22" fill="none">
+        <rect width="22" height="22" rx="5" fill="#0075de"/>
+        <path d="M7 16l4-4 4 4M11 12V7" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      AI System
+    </div>
+    <nav class="nav">
+      <a href="#" class="active">概览</a>
+      <a href="#">搜索</a>
+      <a href="#">设置</a>
+      <button class="btn-primary">手动同步</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <h1 class="page-title">知识库概览</h1>
+  <p class="page-sub">实时同步状态 · 向量数据库 · 模型管理</p>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="label">向量文档</div>
+      <div class="value">350</div>
+      <div class="sub">2 个 Collection</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">最后同步</div>
+      <div class="value" style="font-size:18px;padding-top:6px;">23:07</div>
+      <div class="sub">2 分钟前</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">模型状态</div>
+      <div class="value" style="font-size:16px;padding-top:6px;"><span class="stat-dot"></span>运行中</div>
+      <div class="sub">qwen2.5:14b</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">API 状态</div>
+      <div class="value" style="font-size:16px;padding-top:6px;"><span class="stat-dot"></span>正常</div>
+      <div class="sub">LM Studio + Notion</div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <span class="card-title">最近同步记录</span>
+          <a href="#" style="font-size:12px;color:#0075de;text-decoration:none;">全部 →</a>
+        </div>
+        <div class="card-body">
+          <div class="log-item">
+            <div class="log-dot green"></div>
+            <div class="log-content">
+              <div class="log-title">复盘库 → ChromaDB</div>
+              <div class="log-meta">今天 23:07:20 · 12 条文档</div>
+            </div>
+            <span class="log-badge success">成功</span>
+          </div>
+          <div class="log-item">
+            <div class="log-dot green"></div>
+            <div class="log-content">
+              <div class="log-title">目标库 → ChromaDB</div>
+              <div class="log-meta">今天 23:07:20 · 8 条文档</div>
+            </div>
+            <span class="log-badge success">成功</span>
+          </div>
+          <div class="log-item">
+            <div class="log-dot green"></div>
+            <div class="log-content">
+              <div class="log-title">闪念库 → ChromaDB</div>
+              <div class="log-meta">今天 23:07:20 · 30 条文档</div>
+            </div>
+            <span class="log-badge success">成功</span>
+          </div>
+          <div class="log-item">
+            <div class="log-dot orange"></div>
+            <div class="log-content">
+              <div class="log-title">AI 笔记库 → ChromaDB</div>
+              <div class="log-meta">今天 23:07:20 · 处理中</div>
+            </div>
+            <span class="log-badge pending">进行中</span>
+          </div>
+          <div class="log-item">
+            <div class="log-dot gray"></div>
+            <div class="log-content">
+              <div class="log-title">全量索引重建</div>
+              <div class="log-meta">今天 22:51:03 · 失败</div>
+            </div>
+            <span class="log-badge error">失败</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">向量搜索</span>
+        </div>
+        <div class="card-body">
+          <div class="search-bar">
+            <input class="search-input" placeholder="输入问题，搜索知识库..." value="Conway Automaton 是什么？">
+            <button class="btn-search">搜索</button>
+          </div>
+          <div class="model-section">
+            <div class="model-label">选择模型</div>
+            <div class="model-selector">
+              <span class="model-chip active">qwen2.5:14b</span>
+              <span class="model-chip">qwen3:14b</span>
+              <span class="model-chip">deepseek-coder</span>
+              <span class="model-chip" style="color:#1aae39;border-color:rgba(26,174,57,0.3);">MiniMax</span>
+              <span class="model-chip">GPT-4o</span>
+            </div>
+          </div>
+          <div class="actions-row">
+            <div class="action-btn">
+              <div class="action-icon">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M2 4h12M2 8h8M2 12h10"/>
+                </svg>
+              </div>
+              <span>查看数据库</span>
+            </div>
+            <div class="action-btn">
+              <div class="action-icon">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M8 2v12M2 8h12"/>
+                </svg>
+              </div>
+              <span>重建索引</span>
+            </div>
+            <div class="action-btn">
+              <div class="action-icon">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 10h8M6 6l-4 4 4 4M10 6l4 4-4 4"/>
+                </svg>
+              </div>
+              <span>导出数据</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <span class="card-title">数据库状态</span>
+        </div>
+        <div class="card-body">
+          <div class="db-item">
+            <span class="db-name">knowledge</span>
+            <span class="db-count">312 条</span>
+          </div>
+          <div class="db-item">
+            <span class="db-name">notion</span>
+            <span class="db-count">38 条</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">Notion 数据源</div>
+      <div class="card">
+        <div class="card-body">
+          <div class="db-item">
+            <span class="db-name">📋 复盘</span>
+            <span class="db-count" style="color:#1aae39;">● 已连接</span>
+          </div>
+          <div class="db-item">
+            <span class="db-name">🎯 目标</span>
+            <span class="db-count" style="color:#1aae39;">● 已连接</span>
+          </div>
+          <div class="db-item">
+            <span class="db-name">💡 闪念</span>
+            <span class="db-count" style="color:#1aae39;">● 已连接</span>
+          </div>
+          <div class="db-item">
+            <span class="db-name">🤖 AI笔记</span>
+            <span class="db-count" style="color:#1aae39;">● 已连接</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span class="footer-text">AI System · v3.0</span>
+  <span class="footer-badge">Build 2026.5.19</span>
+</footer>
+
+</body>
+</html>
