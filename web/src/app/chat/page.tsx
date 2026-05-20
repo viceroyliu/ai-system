@@ -119,6 +119,7 @@ export default function ChatPage() {
           <div className="nav-label">Main</div>
           <div className="nav-item" onClick={() => router.push("/")}><span>🏠</span> 概览</div>
           <div className="nav-item active" onClick={() => router.push("/chat")}><span>💬</span> AI 对话</div>
+          <div className="nav-item" onClick={() => router.push("/calendar")}><span>📅</span> 日历 &amp; 复盘</div>
           <div className="nav-item" onClick={() => router.push("/search")}><span>🔍</span> 搜索</div>
           <div className="nav-item" onClick={() => router.push("/settings")}><span>⚙️</span> 设置</div>
         </div>

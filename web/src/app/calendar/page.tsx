@@ -1,110 +1,62 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, type Todo, type Review } from "@/lib/api";
 
 // ─── helpers ────────────────────────────────────────────────
-function iso(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-function today() {
-  return iso(new Date());
-}
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+function iso(d: Date) { return d.toISOString().slice(0, 10); }
+function todayStr() { return iso(new Date()); }
+function cn(...args: (string | boolean | undefined | null)[]) { return args.filter(Boolean).join(" "); }
 function tagLabel(t: string) {
-  const m: Record<string, string> = {
-    study: "学习", work: "工作", exercise: "运动",
-    reading: "阅读", reflection: "反思",
-  };
-  return m[t] || t;
+  return { study: "学习", work: "工作", exercise: "运动", reading: "阅读", reflection: "反思" }[t] ?? t;
 }
 function tagEmoji(t: string) {
-  const m: Record<string, string> = {
-    study: "📚", work: "💼", exercise: "🏃",
-    reading: "📖", reflection: "💭",
-  };
-  return m[t] || "📋";
+  return { study: "📚", work: "💼", exercise: "🏃", reading: "📖", reflection: "💭" }[t] ?? "📋";
 }
-function priColor(p: string) {
-  const m: Record<string, string> = {
-    high: "#fef3c7", medium: "#eef2ff", low: "#f1f5f9",
+function priStyle(p: string) {
+  const m: Record<string, { bg: string; color: string }> = {
+    high: { bg: "#fef3c7", color: "#92400e" },
+    medium: { bg: "#eef2ff", color: "#4338ca" },
+    low: { bg: "#f1f5f9", color: "#475569" },
   };
-  return m[p] || "#f1f5f9";
+  return m[p] ?? m.medium;
 }
 function priText(p: string) {
-  const m: Record<string, string> = {
-    high: "高优先", medium: "中", low: "低",
-  };
-  return m[p] || "中";
-}
-function priTextColor(p: string) {
-  const m: Record<string, string> = {
-    high: "#92400e", medium: "#4338ca", low: "#475569",
-  };
-  return m[p] || "#475569";
-}
-
-function formatMinutes(m: number) {
-  if (m < 60) return `${m} 分钟`;
-  const h = Math.floor(m / 60);
-  const mins = m % 60;
-  return mins > 0 ? `${h} 小时 ${mins} 分钟` : `${h} 小时`;
-}
-
-function formatDate(d: Date) {
-  return d.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "long" });
+  return { high: "高优先", medium: "中", low: "低" }[p] ?? "中";
 }
 
 function getMonthDays(year: number, month: number) {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
   const days: Array<Date | null> = [];
-  // fill leading nulls for Monday-start weeks
-  let dow = first.getDay(); // 0=Sun
-  // convert to Monday-start: Mon=0, Sun=6
+  const dow = first.getDay(); // 0=Sun
   const mondayStart = dow === 0 ? 6 : dow - 1;
   for (let i = 0; i < mondayStart; i++) days.push(null);
   for (let d = 1; d <= last.getDate(); d++) days.push(new Date(year, month, d));
-  // pad to complete weeks
   while (days.length % 7 !== 0) days.push(null);
   return days;
 }
 
-function isWeekend(d: Date) {
-  return d.getDay() === 0 || d.getDay() === 6;
-}
-function isFuture(d: Date) {
-  return iso(d) > today();
-}
-function isPast(d: Date) {
-  return iso(d) < today();
-}
-function isToday(d: Date) {
-  return iso(d) === today();
+function formatDateLong(d: Date) {
+  return d.toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "long" });
 }
 
-// ─── component types ────────────────────────────────────────
-interface AddModalProps {
-  onAdd: (t: Omit<Todo, "id" | "completedAt" | "createdAt">) => void;
+// ─── AddTodoModal ────────────────────────────────────────────
+interface AddTodoModalProps {
+  onAdd: (title: string, tag: Todo["tag"], priority: Todo["priority"]) => void;
   onClose: () => void;
 }
 
-function AddTodoModal({ onAdd, onClose }: AddModalProps) {
+function AddTodoModal({ onAdd, onClose }: AddTodoModalProps) {
   const [title, setTitle] = useState("");
   const [tag, setTag] = useState<Todo["tag"]>("work");
   const [priority, setPriority] = useState<Todo["priority"]>("medium");
-  const [estimatedMinutes, setEstimatedMinutes] = useState(60);
-  const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => { ref.current?.focus(); }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
-    onAdd({ title: title.trim(), tag, priority, estimatedMinutes });
+    onAdd(title.trim(), tag, priority);
     onClose();
   }
 
@@ -117,7 +69,7 @@ function AddTodoModal({ onAdd, onClose }: AddModalProps) {
         </div>
         <form onSubmit={handleSubmit} className="modal-body">
           <input
-            ref={ref}
+            autoFocus
             className="modal-input"
             placeholder="行动标题，如：完成 useEffect 清理函数学习"
             value={title}
@@ -126,7 +78,7 @@ function AddTodoModal({ onAdd, onClose }: AddModalProps) {
           <div className="modal-row">
             <label className="modal-label">类别</label>
             <div className="tag-chips">
-              {(["study","work","exercise","reading","reflection"] as const).map(t => (
+              {(["study", "work", "exercise", "reading", "reflection"] as const).map(t => (
                 <button key={t} type="button"
                   className={cn("tag-chip", tag === t && "active")}
                   onClick={() => setTag(t)}>
@@ -138,28 +90,18 @@ function AddTodoModal({ onAdd, onClose }: AddModalProps) {
           <div className="modal-row">
             <label className="modal-label">优先级</label>
             <div className="tag-chips">
-              {(["high","medium","low"] as const).map(p => (
-                <button key={p} type="button"
-                  className={cn("tag-chip", priority === p && "active")}
-                  onClick={() => setPriority(p)}
-                  style={priority === p ? { background: priColor(p), color: priTextColor(p), border: "1.5px solid currentColor" } : {}}>
-                  {priText(p)}
-                </button>
-              ))}
+              {(["high", "medium", "low"] as const).map(p => {
+                const s = priStyle(p);
+                return (
+                  <button key={p} type="button"
+                    className={cn("tag-chip", priority === p && "active")}
+                    style={priority === p ? { background: s.bg, color: s.color, border: `1.5px solid ${s.color}` } : {}}
+                    onClick={() => setPriority(p)}>
+                    {priText(p)}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-          <div className="modal-row">
-            <label className="modal-label">预估时长</label>
-            <select className="modal-select" value={estimatedMinutes}
-              onChange={e => setEstimatedMinutes(Number(e.target.value))}>
-              <option value={15}>15 分钟</option>
-              <option value={30}>30 分钟</option>
-              <option value={45}>45 分钟</option>
-              <option value={60}>1 小时</option>
-              <option value={90}>1.5 小时</option>
-              <option value={120}>2 小时</option>
-              <option value={180}>3 小时</option>
-            </select>
           </div>
           <button type="submit" className="modal-submit" disabled={!title.trim()}>
             ➕ 添加到行动池
@@ -170,30 +112,146 @@ function AddTodoModal({ onAdd, onClose }: AddModalProps) {
   );
 }
 
-// ─── main page ──────────────────────────────────────────────
+// ─── AddReviewModal ─────────────────────────────────────────
+interface AddReviewModalProps {
+  date: Date;
+  onAdd: (date: string, content: string, type: Review["type"]) => void;
+  onClose: () => void;
+}
+
+function AddReviewModal({ date, onAdd, onClose }: AddReviewModalProps) {
+  const [content, setContent] = useState("");
+  const [rtype, setRtype] = useState<Review["type"]>("daily");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!content.trim()) return;
+    onAdd(iso(date), content.trim(), rtype);
+    onClose();
+  }
+
+  const dateStr = date.toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <span>📝 添加复盘 — {dateStr}</span>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="modal-row">
+            <label className="modal-label">类型</label>
+            <div className="tag-chips">
+              {([["daily","日"],["weekly","周"],["monthly","月"]] as const).map(([v, l]) => (
+                <button key={v} type="button"
+                  className={cn("tag-chip", rtype === v && "active")}
+                  onClick={() => setRtype(v as Review["type"])}>
+                  {v === "daily" ? "📅 日" : v === "weekly" ? "📆 周" : "📊 月"} {l}复盘
+                </button>
+              ))}
+            </div>
+          </div>
+          <textarea
+            autoFocus
+            className="modal-textarea"
+            placeholder={`写一下今天的复盘内容...`}
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            rows={4}
+          />
+          <button type="submit" className="modal-submit" disabled={!content.trim()}>
+            ✓ 添加复盘
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── progress carousel strip ────────────────────────────────
+type CarouselPeriod = "today" | "week" | "month" | "streak";
+
+function ProgressCarousel({ todos, reviews }: { todos: Todo[]; reviews: Review[] }) {
+  const [period, setPeriod] = useState<CarouselPeriod>("today");
+
+  const now = new Date();
+
+  const done = (start: Date, end: Date) =>
+    todos.filter(t => t.completedAt && new Date(t.completedAt) >= start && new Date(t.completedAt) <= end).length;
+
+  const todayDone = done(new Date(now.getFullYear(), now.getMonth(), now.getDate()), now);
+  const weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+  weekStart.setHours(0, 0, 0, 0);
+  const weekDone = done(weekStart, now);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthDone = done(monthStart, now);
+
+  let streak = 0;
+  {
+    const d = new Date(now);
+    d.setHours(23, 59, 59, 999);
+    while (true) {
+      const ds = iso(d);
+      const hasDone = todos.some(t => t.completedAt && t.completedAt.slice(0, 10) === ds);
+      if (!hasDone) break;
+      streak++;
+      d.setDate(d.getDate() - 1);
+      d.setHours(23, 59, 59, 999);
+    }
+  }
+
+  const stats: Record<CarouselPeriod, { label: string; value: number; color: string }> = {
+    today: { label: "今日完成", value: todayDone, color: "#6366f1" },
+    week: { label: "本周完成", value: weekDone, color: "#10b981" },
+    month: { label: "本月完成", value: monthDone, color: "#f59e0b" },
+    streak: { label: "连续活跃", value: streak, color: "#ec4899" },
+  };
+
+  const cur = stats[period];
+
+  return (
+    <div className="progress-carousel">
+      <div className="carousel-dots">
+        {(["today", "week", "month", "streak"] as CarouselPeriod[]).map(p => (
+          <button key={p}
+            className={cn("carousel-dot", period === p && "active")}
+            onClick={() => setPeriod(p)} />
+        ))}
+      </div>
+      <div className="carousel-content">
+        <span className="carousel-label">{cur.label}</span>
+        <span className="carousel-value" style={{ color: cur.color }}>{cur.value}</span>
+        <span className="carousel-unit">项</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── main ───────────────────────────────────────────────────
 type FilterTab = "all" | "active" | "done";
 type ViewMode = "month" | "week" | "year";
 
 const TEMPLATES = [
-  { label: "📚 学习", tag: "study" as const, priority: "high" as const, estimatedMinutes: 60 },
-  { label: "💼 工作", tag: "work" as const, priority: "medium" as const, estimatedMinutes: 120 },
-  { label: "🏃 运动", tag: "exercise" as const, priority: "high" as const, estimatedMinutes: 30 },
-  { label: "📖 阅读", tag: "reading" as const, priority: "low" as const, estimatedMinutes: 45 },
-  { label: "💭 反思", tag: "reflection" as const, priority: "medium" as const, estimatedMinutes: 20 },
+  { label: "📚 学习", tag: "study" as const, priority: "high" as const },
+  { label: "💼 工作", tag: "work" as const, priority: "medium" as const },
+  { label: "🏃 运动", tag: "exercise" as const, priority: "high" as const },
+  { label: "📖 阅读", tag: "reading" as const, priority: "low" as const },
+  { label: "💭 反思", tag: "reflection" as const, priority: "medium" as const },
 ];
 
 export default function CalendarPage() {
   const router = useRouter();
-
   const [todos, setTodos] = useState<Todo[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showAddTodo, setShowAddTodo] = useState(false);
+  const [reviewDate, setReviewDate] = useState<Date | null>(null);
   const [filter, setFilter] = useState<FilterTab>("all");
   const [view, setView] = useState<ViewMode>("month");
-  const [today_date] = useState(new Date());
-  const [viewYear, setViewYear] = useState(today_date.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today_date.getMonth());
+  const [viewYear, setViewYear] = useState(new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
 
   const monthDays = getMonthDays(viewYear, viewMonth);
   const monthName = new Date(viewYear, viewMonth, 1)
@@ -201,10 +259,7 @@ export default function CalendarPage() {
 
   const load = useCallback(async () => {
     try {
-      const [t, r] = await Promise.all([
-        apiClient.getTodos(),
-        apiClient.getReviews(),
-      ]);
+      const [t, r] = await Promise.all([apiClient.getTodos(), apiClient.getReviews()]);
       setTodos(t.todos);
       setReviews(r.reviews);
     } catch (e) {
@@ -216,97 +271,86 @@ export default function CalendarPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // keyboard shortcut ⌘+
+  // ⌘+ shortcut
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "+") {
         e.preventDefault();
-        setShowAdd(true);
+        setShowAddTodo(true);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  async function handleAddTodo(data: Omit<Todo, "id" | "completedAt" | "createdAt">) {
-    const { todo } = await apiClient.createTodo(data);
-    setTodos(prev => [todo, ...prev]);
+  async function handleAddTodo(title: string, tag: Todo["tag"], priority: Todo["priority"]) {
+    try {
+      const { todo } = await apiClient.createTodo({ title, tag, priority, estimatedMinutes: 60 });
+      setTodos(prev => [todo, ...prev]);
+    } catch (e) {
+      console.error("Failed to add todo:", e);
+    }
   }
 
   async function handleToggleComplete(id: string, completed: boolean) {
-    await apiClient.patchTodo(id, { completed });
-    setTodos(prev => prev.map(t => t.id === id
-      ? { ...t, completedAt: completed ? new Date().toISOString() : null }
-      : t));
+    try {
+      await apiClient.patchTodo(id, { completed });
+      setTodos(prev => prev.map(t => t.id === id
+        ? { ...t, completedAt: completed ? new Date().toISOString() : null }
+        : t));
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function handleDeleteTodo(id: string) {
-    await apiClient.deleteTodo(id);
-    setTodos(prev => prev.filter(t => t.id !== id));
+    try {
+      await apiClient.deleteTodo(id);
+      setTodos(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  async function handleAddReview(date: string, content: string) {
-    const { review } = await apiClient.createReview({ date, type: "daily", content, aiInsights: "" });
-    setReviews(prev => [review, ...prev]);
+  async function handleAddReview(date: string, content: string, type: Review["type"]) {
+    try {
+      const { review } = await apiClient.createReview({ date, type, content, aiInsights: "" });
+      setReviews(prev => [review, ...prev]);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function handleDeleteReview(id: string) {
-    await apiClient.deleteReview(id);
-    setReviews(prev => prev.filter(r => r.id !== id));
+    try {
+      await apiClient.deleteReview(id);
+      setReviews(prev => prev.filter(r => r.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  // ─── derived data ───────────────────────────────────────────
+  // derived
   const activeTodos = todos.filter(t => !t.completedAt);
   const doneTodos = todos.filter(t => t.completedAt);
-  const completedToday = doneTodos.filter(t =>
-    t.completedAt && t.completedAt.slice(0, 10) === today()
-  );
-  const inProgressToday = activeTodos.slice(0, 5);
-  const doneInPool = doneTodos.slice(0, 10);
-
-  const completedCount = completedToday.length;
-  const totalCount = completedCount + inProgressToday.length;
-  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  // streak: consecutive days with at least one completed TODO
-  const streak = (() => {
-    let count = 0;
-    const d = new Date();
-    while (true) {
-      const ds = iso(d);
-      const hasDone = todos.some(t => t.completedAt && t.completedAt.slice(0, 10) === ds);
-      if (!hasDone) break;
-      count++;
-      d.setDate(d.getDate() - 1);
-    }
-    return count;
-  })();
-
   const filterTodos = filter === "all" ? todos
     : filter === "active" ? activeTodos
     : doneTodos;
+  const inProgress = activeTodos.slice(0, 8);
+  const donePool = doneTodos.slice(0, 8);
 
-  // ─── calendar helpers ──────────────────────────────────────
-  function getCellItems(date: Date) {
-    const ds = iso(date);
-    const done = doneTodos.filter(t => t.completedAt && t.completedAt.slice(0, 10) === ds);
-    const revs = reviews.filter(r => r.date === ds);
-    return { done, reviews: revs };
-  }
-
-  // AI suggestion: find categories with gap > 3 days
+  // streak for AI suggestion
   const aiSuggestion = (() => {
     const now = new Date();
     const gaps: Record<string, number> = {};
     for (const t of todos) {
       if (!t.completedAt) continue;
       const daysSince = Math.floor((now.getTime() - new Date(t.completedAt).getTime()) / 86400000);
-      const key = t.tag;
-      if (!gaps[key] || daysSince > gaps[key]) gaps[key] = daysSince;
+      if (!gaps[t.tag] || daysSince > gaps[t.tag]) gaps[t.tag] = daysSince;
     }
-    const maxTag = Object.entries(gaps).sort((a, b) => b[1] - a[1])[0];
-    if (!maxTag || maxTag[1] < 3) return null;
-    return { tag: maxTag[0], days: maxTag[1] };
+    const max = Object.entries(gaps).sort((a, b) => b[1] - a[1])[0];
+    if (!max || max[1] < 3) return null;
+    return { tag: max[0], days: max[1] };
   })();
 
   function prevMonth() {
@@ -318,14 +362,19 @@ export default function CalendarPage() {
     else setViewMonth(m => m + 1);
   }
 
-  const weekNum = Math.ceil((viewMonth + 1) / 4);
+  const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
+  const today_iso = todayStr();
 
-  // weekday headers Monday-first
-  const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
+  function getCellItems(date: Date) {
+    const ds = iso(date);
+    const done = doneTodos.filter(t => t.completedAt && t.completedAt.slice(0, 10) === ds);
+    const revs = reviews.filter(r => r.date === ds);
+    return { done, reviews: revs };
+  }
 
   return (
     <div className="app-layout">
-      {/* ── SIDEBAR ── */}
+      {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-mark"><span>NX</span></div>
@@ -358,27 +407,26 @@ export default function CalendarPage() {
         </div>
       </aside>
 
-      {/* ── MAIN ── */}
+      {/* MAIN */}
       <main className="main">
         {/* TOPBAR */}
         <div className="topbar">
           <div className="topbar-left">
             <h1>📅 日历 &amp; 复盘</h1>
-            <div className="subtitle">{formatDate(today_date)} · 第 {weekNum} 周</div>
+            <div className="subtitle">{new Date().toLocaleDateString("zh-CN", { weekday: "long" })}</div>
           </div>
           <div className="topbar-right" style={{ gap: 8 }}>
-            {/* month nav */}
             <div className="month-nav">
               <button className="month-btn" onClick={prevMonth}>‹</button>
               <span className="month-label">{monthName}</span>
               <button className="month-btn" onClick={nextMonth}>›</button>
             </div>
-            <button className="btn-ghost btn-sm" onClick={() => { setViewYear(today_date.getFullYear()); setViewMonth(today_date.getMonth()); }}>
+            <button className="btn-ghost btn-sm"
+              onClick={() => { setViewYear(new Date().getFullYear()); setViewMonth(new Date().getMonth()); }}>
               今天
             </button>
-            {/* view switcher */}
             <div className="view-switch">
-              {(["month","week","year"] as ViewMode[]).map(v => (
+              {(["month", "week", "year"] as ViewMode[]).map(v => (
                 <button key={v} className={cn("view-btn", view === v && "active")}
                   onClick={() => setView(v)}>
                   {v === "month" ? "月" : v === "week" ? "周" : "年"}
@@ -386,74 +434,25 @@ export default function CalendarPage() {
               ))}
             </div>
             <button className="btn-ghost btn-sm" onClick={() => router.push("/chat")}>
-              🤖 AI 月度总结
-            </button>
-            <button className="btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-              ⚡ 同步本月到 Notion
+              🤖 AI 总结
             </button>
           </div>
         </div>
 
-        {/* CONTENT: left panel + right calendar */}
-        <div className="content" style={{ padding: "20px 24px", gap: 20, display: "flex", flexDirection: "column" }}>
+        {/* CONTENT */}
+        <div className="content" style={{ padding: "16px 24px", display: "flex", flexDirection: "column", gap: 16, overflow: "auto" }}>
 
-          {/* Stats row */}
-          <div style={{ display: "flex", gap: 12 }}>
-            {[
-              { label: "今日完成", value: completedCount, sub: `/ ${totalCount} 行动`, color: "var(--sb-primary)" },
-              { label: "连续活跃", value: streak, sub: "天", color: "#f59e0b" },
-              { label: "本周完成", value: doneTodos.filter(t => {
-                const w = new Date(); w.setDate(w.getDate() - 7);
-                return t.completedAt && new Date(t.completedAt) >= w;
-              }).length, sub: "项", color: "#10b981" },
-              { label: "本月复盘", value: reviews.filter(r => {
-                const m = new Date(viewYear, viewMonth, 1);
-                return new Date(r.date) >= m;
-              }).length, sub: "篇", color: "#ec4899" },
-            ].map(stat => (
-              <div key={stat.label} style={{ flex: 1, background: "var(--sb-surface)", border: "1px solid var(--sb-border)", borderRadius: 12, padding: "12px 16px" }}>
-                <div style={{ fontSize: 10, color: "var(--sb-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{stat.label}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 4 }}>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: stat.color }}>{stat.value}</span>
-                  <span style={{ fontSize: 11, color: "var(--sb-text-muted)" }}>{stat.sub}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Two-column layout */}
+          {/* Two-column */}
           <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16 }}>
 
             {/* ── LEFT: TODO POOL ── */}
             <div className="todo-panel">
 
-              {/* header */}
-              <div className="todo-panel-header">
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--sb-text)" }}>🎯 今日行动池</div>
-                  <div style={{ fontSize: 10, color: "var(--sb-text-muted)", marginTop: 2 }}>
-                    {new Date().toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "long" })} · 完成后自动归档到日历
-                  </div>
-                </div>
-              </div>
-
-              {/* progress */}
-              <div className="todo-progress">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "var(--sb-text-muted)" }}>今日进度</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--sb-primary)" }}>{progressPct}%</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: "var(--sb-text)" }}>{completedCount}</span>
-                  <span style={{ fontSize: 11, color: "var(--sb-text-muted)" }}>/ {totalCount} 已完成</span>
-                  <div style={{ flex: 1, height: 6, borderRadius: 3, background: "var(--sb-border)" }}>
-                    <div style={{ width: `${progressPct}%`, height: "100%", borderRadius: 3, background: "var(--sb-primary)", transition: "width 0.3s" }} />
-                  </div>
-                </div>
-              </div>
+              {/* progress carousel */}
+              <ProgressCarousel todos={todos} reviews={reviews} />
 
               {/* add button */}
-              <button className="todo-add-btn" onClick={() => setShowAdd(true)}>
+              <button className="todo-add-btn" onClick={() => setShowAddTodo(true)}>
                 ＋ 添加新行动 <span className="key">⌘+</span>
               </button>
 
@@ -472,39 +471,51 @@ export default function CalendarPage() {
                 ))}
               </div>
 
-              {/* in-progress section */}
-              {filter !== "done" && inProgressToday.length > 0 && (
+              {/* in-progress */}
+              {filter !== "done" && inProgress.length > 0 && (
                 <div className="todo-section">
                   <div className="todo-section-label">⏳ 进行中</div>
-                  {inProgressToday.map(todo => (
-                    <div key={todo.id} className="todo-item">
-                      <button className="todo-check" onClick={() => handleToggleComplete(todo.id, true)}>○</button>
-                      <div className="todo-item-body">
-                        <div className="todo-item-title">{todo.title}</div>
-                        <div style={{ fontSize: 10, color: "var(--sb-text-muted)" }}>
-                          {tagEmoji(todo.tag)} {tagLabel(todo.tag)} · 预计 {formatMinutes(todo.estimatedMinutes)}
+                  {inProgress.map(todo => {
+                    const ps = priStyle(todo.priority);
+                    return (
+                      <div key={todo.id} className="todo-item">
+                        <button className="todo-check" onClick={() => handleToggleComplete(todo.id, true)}>
+                          ○
+                        </button>
+                        <div className="todo-item-body">
+                          <div className="todo-item-title">{todo.title}</div>
+                          <div style={{ fontSize: 10, color: "var(--sb-text-muted)", marginTop: 2 }}>
+                            {tagEmoji(todo.tag)} {tagLabel(todo.tag)}
+                          </div>
+                          <div style={{
+                            display: "inline-block", marginTop: 4,
+                            padding: "1px 6px", borderRadius: 4,
+                            background: ps.bg, color: ps.color,
+                            fontSize: 9, fontWeight: 600,
+                          }}>
+                            {priText(todo.priority)}
+                          </div>
                         </div>
-                        <div style={{ display: "inline-block", marginTop: 4, padding: "1px 6px", borderRadius: 4, background: priColor(todo.priority), color: priTextColor(todo.priority), fontSize: 9, fontWeight: 600 }}>
-                          {priText(todo.priority)}
-                        </div>
+                        <button className="todo-delete" onClick={() => handleDeleteTodo(todo.id)}>🗑</button>
                       </div>
-                      <button className="todo-delete" onClick={() => handleDeleteTodo(todo.id)}>🗑</button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
-              {/* completed section */}
-              {filter === "all" && doneInPool.length > 0 && (
+              {/* done */}
+              {filter !== "active" && donePool.length > 0 && (
                 <div className="todo-section">
                   <div className="todo-section-label done">✓ 已完成 · 已归档到日历</div>
-                  {doneInPool.map(todo => (
+                  {donePool.map(todo => (
                     <div key={todo.id} className="todo-item done">
-                      <button className="todo-check done" onClick={() => handleToggleComplete(todo.id, false)}>✓</button>
+                      <button className="todo-check done" onClick={() => handleToggleComplete(todo.id, false)}>
+                        ✓
+                      </button>
                       <div className="todo-item-body">
                         <div className="todo-item-title done">{todo.title}</div>
-                        <div style={{ fontSize: 9, color: "#16a34a" }}>
-                          📍 已显示在 {todo.completedAt?.slice(5, 10).replace("-", "/")} 日历格
+                        <div style={{ fontSize: 9, color: "#16a34a", marginTop: 2 }}>
+                          📍 {todo.completedAt?.slice(5, 10).replace("-", "/")} 已归档
                         </div>
                       </div>
                       <button className="todo-delete" onClick={() => handleDeleteTodo(todo.id)}>🗑</button>
@@ -512,17 +523,6 @@ export default function CalendarPage() {
                   ))}
                 </div>
               )}
-
-              {filter === "done" && doneTodos.map(todo => (
-                <div key={todo.id} className="todo-item done">
-                  <button className="todo-check done" onClick={() => handleToggleComplete(todo.id, false)}>✓</button>
-                  <div className="todo-item-body">
-                    <div className="todo-item-title done">{todo.title}</div>
-                    <div style={{ fontSize: 9, color: "#16a34a" }}>📍 {todo.completedAt?.slice(5, 10).replace("-", "/")}</div>
-                  </div>
-                  <button className="todo-delete" onClick={() => handleDeleteTodo(todo.id)}>🗑</button>
-                </div>
-              ))}
 
               {loading && <div className="todo-empty">加载中...</div>}
               {!loading && filterTodos.length === 0 && (
@@ -538,12 +538,8 @@ export default function CalendarPage() {
                   <div className="ai-suggestion-body">
                     你已 <strong>{aiSuggestion.days} 天</strong> 没做「{tagLabel(aiSuggestion.tag)}」类行动
                   </div>
-                  <div className="ai-suggestion-cta" onClick={() => handleAddTodo({
-                    title: `${tagLabel(aiSuggestion.tag)} 30 分钟`,
-                    tag: aiSuggestion.tag as Todo["tag"],
-                    priority: "medium",
-                    estimatedMinutes: 30,
-                  })}>
+                  <div className="ai-suggestion-cta"
+                    onClick={() => handleAddTodo(`${tagLabel(aiSuggestion.tag)} 30 分钟`, aiSuggestion.tag as Todo["tag"], "medium")}>
                     + 加入行动池
                   </div>
                 </div>
@@ -555,11 +551,11 @@ export default function CalendarPage() {
                 <div className="quick-templates-grid">
                   {TEMPLATES.map(t => (
                     <button key={t.label} className="template-chip"
-                      onClick={() => handleAddTodo({ title: `${tagLabel(t.tag)} 30 分钟`, tag: t.tag, priority: t.priority, estimatedMinutes: t.estimatedMinutes })}>
+                      onClick={() => handleAddTodo(`${tagLabel(t.tag)} 30 分钟`, t.tag, t.priority)}>
                       {t.label}
                     </button>
                   ))}
-                  <button className="template-chip" onClick={() => setShowAdd(true)}>+ 自定义</button>
+                  <button className="template-chip" onClick={() => setShowAddTodo(true)}>+ 自定义</button>
                 </div>
               </div>
             </div>
@@ -568,42 +564,52 @@ export default function CalendarPage() {
             <div className="calendar-grid-panel">
               {/* weekday headers */}
               <div className="cal-weekdays">
-                {weekdayLabels.map((d, i) => (
+                {weekdays.map((d, i) => (
                   <div key={d} className={cn("cal-weekday", (i === 5 || i === 6) && "weekend")}>{d}</div>
                 ))}
               </div>
 
-              {/* calendar cells */}
+              {/* cells */}
               <div className="cal-cells">
                 {monthDays.map((day, idx) => {
-                  if (!day) return <div key={`empty-${idx}`} className="cal-cell empty" />;
+                  if (!day) return <div key={`e-${idx}`} className="cal-cell empty" />;
 
-                  const { done, reviews } = getCellItems(day);
-                  const past = isPast(day);
-                  const future = isFuture(day);
-                  const weekend = isWeekend(day);
-                  const todayCell = isToday(day);
+                  const { done, reviews: revs } = getCellItems(day);
+                  const isToday = iso(day) === today_iso;
+                  const isPast = iso(day) < today_iso;
+                  const isFuture = iso(day) > today_iso;
+                  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   const allItems = [
-                    ...done.map(t => ({ type: "done" as const, text: t.title, id: t.id })),
-                    ...reviews.map(r => ({ type: r.type === "weekly" || r.type === "monthly" ? "ai" as const : "review" as const, text: r.content.slice(0, 20), id: r.id })),
+                    ...done.map(t => ({ kind: "done" as const, text: t.title, id: t.id })),
+                    ...revs.map(r => ({
+                      kind: (r.type === "weekly" || r.type === "monthly" ? "ai" : "review") as "done" | "review" | "ai",
+                      text: r.content.slice(0, 18),
+                      id: r.id,
+                    })),
                   ];
 
                   return (
                     <div key={iso(day)}
-                      className={cn("cal-cell", todayCell && "today", weekend && "weekend-cell", future && "future-cell", past && !weekend && "past-cell")}
-                      onClick={() => {
-                        const text = prompt(`${day.getMonth() + 1}/${day.getDate()} - 添加复盘内容：`);
-                        if (text) handleAddReview(iso(day), text);
-                      }}>
+                      className={cn("cal-cell",
+                        isToday && "today",
+                        isWeekend && "weekend-cell",
+                        isFuture && "future-cell",
+                        !isToday && !isFuture && !isWeekend && "past-cell"
+                      )}
+                      onClick={() => setReviewDate(day)}>
                       <div className="cal-cell-header">
-                        <span className={cn("cal-day-num", todayCell && "today-num")}>{day.getDate()}</span>
-                        {todayCell && <span className="today-badge">TODAY</span>}
+                        <span className={cn("cal-day-num", isToday && "today-num")}>{day.getDate()}</span>
+                        {isToday && <span className="today-badge">TODAY</span>}
                       </div>
                       <div className="cal-cell-items">
                         {allItems.slice(0, 3).map(item => (
                           <div key={item.id}
-                            className={cn("cal-item", item.type === "done" && "cal-item-done", item.type === "review" && "cal-item-review", item.type === "ai" && "cal-item-ai")}>
-                            {item.type === "done" ? "✓ " : item.type === "review" ? "📝 " : "🤖 "}
+                            className={cn("cal-item",
+                              item.kind === "done" && "cal-item-done",
+                              item.kind === "review" && "cal-item-review",
+                              item.kind === "ai" && "cal-item-ai"
+                            )}>
+                            {item.kind === "done" ? "✓ " : item.kind === "review" ? "📝 " : "🤖 "}
                             {item.text}
                           </div>
                         ))}
@@ -616,16 +622,22 @@ export default function CalendarPage() {
                 })}
               </div>
             </div>
-
           </div>
         </div>
       </main>
 
-      {/* ADD MODAL */}
-      {showAdd && (
+      {/* MODALS */}
+      {showAddTodo && (
         <AddTodoModal
           onAdd={handleAddTodo}
-          onClose={() => setShowAdd(false)}
+          onClose={() => setShowAddTodo(false)}
+        />
+      )}
+      {reviewDate && (
+        <AddReviewModal
+          date={reviewDate}
+          onAdd={handleAddReview}
+          onClose={() => setReviewDate(null)}
         />
       )}
 
@@ -650,8 +662,6 @@ export default function CalendarPage() {
 
         /* TODO Panel */
         .todo-panel { background: var(--sb-surface); border: 1px solid var(--sb-border); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        .todo-panel-header { }
-        .todo-progress { background: var(--sb-muted); border-radius: 10px; padding: 10px 12px; }
         .todo-add-btn { width: 100%; background: var(--sb-ink); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .key { font-size: 10px; color: var(--sb-text-muted); }
         .todo-filters { display: flex; gap: 6px; }
@@ -679,12 +689,22 @@ export default function CalendarPage() {
         .quick-templates-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .template-chip { padding: 5px 8px; border-radius: 20px; border: 1px solid var(--sb-border); background: white; font-size: 10px; color: var(--sb-text-secondary); cursor: pointer; text-align: center; }
 
+        /* Progress Carousel */
+        .progress-carousel { background: var(--sb-ink); border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+        .carousel-dots { display: flex; flex-direction: column; gap: 5px; }
+        .carousel-dot { width: 6px; height: 6px; border-radius: 50%; border: none; background: #334155; cursor: pointer; padding: 0; }
+        .carousel-dot.active { background: var(--sb-primary); }
+        .carousel-content { display: flex; align-items: baseline; gap: 6px; flex: 1; }
+        .carousel-label { font-size: 11px; color: #94a3b8; }
+        .carousel-value { font-size: 32px; font-weight: 800; line-height: 1; }
+        .carousel-unit { font-size: 12px; color: #94a3b8; }
+
         /* Calendar */
         .calendar-grid-panel { background: var(--sb-surface); border: 1px solid var(--sb-border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
         .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--sb-border); }
         .cal-weekday { text-align: center; padding: 8px; font-size: 11px; font-weight: 700; color: var(--sb-text-muted); text-transform: uppercase; }
         .cal-weekday.weekend { color: #ec4899; }
-        .cal-cells { display: grid; grid-template-columns: repeat(7, 1fr); flex: 1; }
+        .cal-cells { display: grid; grid-template-columns: repeat(7, 1fr); }
         .cal-cell { min-height: 110px; border-right: 1px solid var(--sb-border); border-bottom: 1px solid var(--sb-border); padding: 6px 8px; cursor: pointer; transition: background 0.15s; }
         .cal-cell:hover { background: var(--sb-muted); }
         .cal-cell.empty { background: var(--sb-bg); cursor: default; }
@@ -712,12 +732,13 @@ export default function CalendarPage() {
         .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
         .modal-input { width: 100%; padding: 10px 12px; border: 1px solid var(--sb-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; box-sizing: border-box; }
         .modal-input:focus { border-color: var(--sb-primary); }
+        .modal-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--sb-border); border-radius: 8px; font-size: 13px; font-family: inherit; outline: none; resize: vertical; min-height: 80px; box-sizing: border-box; }
+        .modal-textarea:focus { border-color: var(--sb-primary); }
         .modal-row { display: flex; flex-direction: column; gap: 6px; }
         .modal-label { font-size: 11px; font-weight: 700; color: var(--sb-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
         .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
         .tag-chip { padding: 5px 10px; border-radius: 20px; border: 1.5px solid var(--sb-border); background: white; font-size: 11px; color: var(--sb-text-secondary); cursor: pointer; }
         .tag-chip.active { background: var(--sb-primary); color: #fff; border-color: var(--sb-primary); }
-        .modal-select { padding: 7px 10px; border: 1px solid var(--sb-border); border-radius: 8px; font-size: 12px; font-family: inherit; outline: none; background: var(--sb-muted); }
         .modal-submit { width: 100%; background: var(--sb-primary); color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
         .modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
