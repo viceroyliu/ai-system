@@ -1688,6 +1688,105 @@ def api_chat():
     })
 
 
+# ============ TODO & Reviews API ============
+import json as _json
+import uuid as _uuid
+from datetime import datetime, timezone
+
+DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
+TODOS_FILE = DATA_DIR / "todos.json"
+REVIEWS_FILE = DATA_DIR / "reviews.json"
+
+def _load_json(path, default):
+    try:
+        if path.exists():
+            with open(path, "r", encoding="utf-8") as f:
+                return _json.load(f)
+    except Exception:
+        pass
+    return default
+
+def _save_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+
+@app.route("/api/todos", methods=["GET"])
+def api_todos():
+    todos = _load_json(TODOS_FILE, [])
+    return jsonify({"todos": todos})
+
+@app.route("/api/todos", methods=["POST"])
+def api_create_todo():
+    data = request.get_json() or {}
+    todo = {
+        "id": str(_uuid.uuid4()),
+        "title": data.get("title", ""),
+        "tag": data.get("tag", "work"),
+        "priority": data.get("priority", "medium"),
+        "estimatedMinutes": data.get("estimatedMinutes", 60),
+        "completedAt": None,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    todos = _load_json(TODOS_FILE, [])
+    todos.insert(0, todo)
+    _save_json(TODOS_FILE, todos)
+    return jsonify({"todo": todo}), 201
+
+@app.route("/api/todos/<tid>", methods=["PATCH"])
+def api_patch_todo(tid):
+    data = request.get_json() or {}
+    todos = _load_json(TODOS_FILE, [])
+    for t in todos:
+        if t["id"] == tid:
+            if "completed" in data:
+                t["completedAt"] = datetime.now(timezone.utc).isoformat() if data["completed"] else None
+            if "title" in data:
+                t["title"] = data["title"]
+            if "tag" in data:
+                t["tag"] = data["tag"]
+            if "priority" in data:
+                t["priority"] = data["priority"]
+            break
+    _save_json(TODOS_FILE, todos)
+    return jsonify({"ok": True})
+
+@app.route("/api/todos/<tid>", methods=["DELETE"])
+def api_delete_todo(tid):
+    todos = _load_json(TODOS_FILE, [])
+    todos = [t for t in todos if t["id"] != tid]
+    _save_json(TODOS_FILE, todos)
+    return jsonify({"ok": True})
+
+@app.route("/api/reviews", methods=["GET"])
+def api_reviews():
+    reviews = _load_json(REVIEWS_FILE, [])
+    return jsonify({"reviews": reviews})
+
+@app.route("/api/reviews", methods=["POST"])
+def api_create_review():
+    data = request.get_json() or {}
+    review = {
+        "id": str(_uuid.uuid4()),
+        "date": data.get("date", ""),
+        "type": data.get("type", "daily"),
+        "content": data.get("content", ""),
+        "aiInsights": data.get("aiInsights", ""),
+        "notionPageId": None,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    reviews = _load_json(REVIEWS_FILE, [])
+    reviews.insert(0, review)
+    _save_json(REVIEWS_FILE, reviews)
+    return jsonify({"review": review}), 201
+
+@app.route("/api/reviews/<rid>", methods=["DELETE"])
+def api_delete_review(rid):
+    reviews = _load_json(REVIEWS_FILE, [])
+    reviews = [r for r in reviews if r["id"] != rid]
+    _save_json(REVIEWS_FILE, reviews)
+    return jsonify({"ok": True})
+
 # ============ 启动入口 ============
 if __name__ == "__main__":
     log("🚀 AI System 同步服务启动")

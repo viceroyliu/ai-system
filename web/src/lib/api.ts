@@ -10,6 +10,26 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<T> 
   return r.json() as Promise<T>;
 }
 
+export type Todo = {
+  id: string;
+  title: string;
+  tag: "study" | "work" | "exercise" | "reading" | "reflection";
+  priority: "high" | "medium" | "low";
+  estimatedMinutes: number;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export type Review = {
+  id: string;
+  date: string;
+  type: "daily" | "weekly" | "monthly";
+  content: string;
+  aiInsights: string;
+  notionPageId: string | null;
+  createdAt: string;
+};
+
 export const apiClient = {
   getStatus: () => api<import('./types').ApiStatus>('GET', '/status'),
   getModels: () => api<import('./types').ApiModels>('GET', '/models'),
@@ -27,6 +47,19 @@ export const apiClient = {
     api<{ ok: boolean }>('POST', '/settings', data),
   chat: (query: string, model?: string) =>
     api<import('./types').ChatResponse>('POST', '/chat', { query, model }),
+  // TODO & Reviews
+  getTodos: () => api<{ todos: Todo[] }>('GET', '/todos'),
+  createTodo: (data: Omit<Todo, "id" | "completedAt" | "createdAt">) =>
+    api<{ todo: Todo }>('POST', '/todos', data),
+  patchTodo: (id: string, data: { completed?: boolean; title?: string; tag?: string; priority?: string }) =>
+    api<{ ok: boolean }>('PATCH', `/todos/${id}`, data),
+  deleteTodo: (id: string) =>
+    api<{ ok: boolean }>('DELETE', `/todos/${id}`),
+  getReviews: () => api<{ reviews: Review[] }>('GET', '/reviews'),
+  createReview: (data: Omit<Review, "id" | "notionPageId" | "createdAt">) =>
+    api<{ review: Review }>('POST', '/reviews', data),
+  deleteReview: (id: string) =>
+    api<{ ok: boolean }>('DELETE', `/reviews/${id}`),
 };
 
 export type NoteItem = {
