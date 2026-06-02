@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>明镜见心 · Aimira — 你的本地 AI 第二大脑</title>
+  <meta name="description" content="明镜见心 Aimira 是一款本地优先的 AI 知识管理系统：连接 Notion、向量语义搜索、多视角 AI 洞察与 RAG 对话，让你的笔记真正长出思想。" />
+  <meta property="og:title" content="明镜见心 · Aimira" />
+  <meta property="og:description" content="本地优先的 AI 第二大脑：笔记、对话、洞察、复盘，一处沉淀。" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%236366f1'/%3E%3Ccircle cx='16' cy='16' r='6' fill='white'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ===== Nav ===== -->
+  <header class="nav" id="nav">
+    <div class="nav-inner container">
+      <a class="brand" href="#top" aria-label="明镜见心首页">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">明镜见心 <em>Aimira</em></span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="#features">核心能力</a>
+        <a href="#perspectives">AI 视角</a>
+        <a href="#flow">工作流</a>
+        <a href="#privacy">隐私</a>
+        <a href="#faq">常见问题</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-ghost" href="http://localhost:3000" target="_blank" rel="noopener">进入应用</a>
+        <a class="btn btn-primary" href="http://localhost:3000" target="_blank" rel="noopener">免费开始</a>
+      </div>
+      <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ===== Hero ===== -->
+    <section class="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <div class="hero-copy reveal">
+          <span class="pill">🪞 本地优先 · 你的数据永远属于你</span>
+          <h1>让笔记<span class="grad">长出思想</span><br />的 AI 第二大脑</h1>
+          <p class="lead">
+            明镜见心连接你的 Notion 与本地笔记，用向量语义搜索找回每一条灵感，
+            再以 16 种 AI 视角与你对话、复盘、追问——把零散记录沉淀成真正属于你的认知。
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="http://localhost:3000" target="_blank" rel="noopener">立即进入明镜见心</a>
+            <a class="btn btn-ghost btn-lg" href="#features">看看它能做什么</a>
+          </div>
+          <ul class="hero-trust">
+            <li>✓ 数据本地存储</li>
+            <li>✓ 接入 Notion</li>
+            <li>✓ 支持本地 / 在线大模型</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual reveal">
+          <div class="mock-window">
+            <div class="mock-bar"><span></span><span></span><span></span></div>
+            <div class="mock-body">
+              <aside class="mock-side">
+                <div class="mock-logo"><span></span>明镜见心</div>
+                <div class="mock-nav on">📊 概览</div>
+                <div class="mock-nav">💬 AI 对话</div>
+                <div class="mock-nav">🔍 知识库</div>
+                <div class="mock-nav">🎯 目标</div>
+                <div class="mock-nav">🗓️ 日历</div>
+                <div class="mock-model">⚡ MiniMax-M2.7</div>
+              </aside>
+              <div class="mock-main">
+                <div class="mock-bubble user">读读我最近的笔记，问我一个我没敢面对的问题。</div>
+                <div class="mock-bubble ai">
+                  <span class="mock-think">🔥 灵魂拷问视角</span>
+                  你反复在记“想开始”，却很少记“已经开始”——
+                  如果三个月后回看，你希望今天的自己做了什么不一样的选择？
+                </div>
+                <div class="mock-refs">
+                  <span>📎 引用 3 条笔记</span>
+                  <span>🧠 向量召回</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="float-card fc1">🧭 16 种思考视角</div>
+          <div class="float-card fc2">🔒 100% 本地</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Logos / stats ===== -->
+    <section class="stats">
+      <div class="container stats-grid">
+        <div class="reveal"><strong>16</strong><span>AI 思考视角</span></div>
+        <div class="reveal"><strong>∞</strong><span>笔记容量</span></div>
+        <div class="reveal"><strong>本地</strong><span>向量语义搜索</span></div>
+        <div class="reveal"><strong>0</strong><span>数据上传第三方</span></div>
+      </div>
+    </section>
+
+    <!-- ===== Features ===== -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">核心能力</span>
+          <h2>一处沉淀，全程贯通</h2>
+          <p>从收集到对话再到复盘，明镜见心把割裂的知识工作流连成一条线。</p>
+        </div>
+        <div class="grid feat-grid">
+          <article class="card reveal">
+            <div class="ic ic-indigo">🔗</div>
+            <h3>Notion 双向接入</h3>
+            <p>同步你的 Notion 数据库到本地向量库，闪念、复盘、目标一处可查，不再多平台来回切换。</p>
+          </article>
+          <article class="card reveal">
+            <div class="ic ic-pink">🔍</div>
+            <h3>向量语义搜索</h3>
+            <p>基于 ChromaDB 的语义检索，按“意思”而非关键词找回笔记，再久远的灵感也能瞬间召回。</p>
+          </article>
+          <article class="card reveal">
+            <div class="ic ic-green">💬</div>
+            <h3>RAG 智能对话</h3>
+            <p>对话自动检索相关笔记作为上下文，AI 基于你的真实记录回答，并标注引用来源。</p>
+          </article>
+          <article class="card reveal">
+            <div class="ic ic-amber">🧭</div>
+            <h3>多视角 AI 洞察</h3>
+            <p>朋友视角、灵魂拷问、复利思维、二阶思考……一键换一种眼光重新审视自己的笔记。</p>
+          </article>
+          <article class="card reveal">
+            <div class="ic ic-indigo">🔁</div>
+            <h3>复盘自动总结</h3>
+            <p>记录复盘后自动生成 AI 摘要并入库，把一次次经历悄悄沉淀成可复用的认知。</p>
+          </article>
+          <article class="card reveal">
+            <div class="ic ic-pink">🎯</div>
+            <h3>目标与日历</h3>
+            <p>目标、待办与日历视图打通，让“想清楚”的事真正落到“做得到”的每一天。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Perspectives ===== -->
+    <section class="section section-alt" id="perspectives">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">AI 视角</span>
+          <h2>同一份笔记，16 种照见自己的方式</h2>
+          <p>点一下，换一双眼睛。明镜照物，亦照见你未曾留意的自己。</p>
+        </div>
+        <div class="chips reveal">
+          <span class="chip">👁️ 默认洞察</span>
+          <span class="chip">🧑‍🤝‍🧑 朋友视角</span>
+          <span class="chip">🎯 行动指南</span>
+          <span class="chip">🕳️ 盲区探索</span>
+          <span class="chip">🔥 灵魂拷问</span>
+          <span class="chip">🧭 探索</span>
+          <span class="chip">📈 复利</span>
+          <span class="chip">⚙️ 飞轮</span>
+          <span class="chip">💎 价值澄清</span>
+          <span class="chip">🔄 逆向思考</span>
+          <span class="chip">🪜 二阶思考</span>
+          <span class="chip">🧩 CBT 疗法</span>
+          <span class="chip">🧠 MBTI 分析</span>
+          <span class="chip">❓ 苏格拉底</span>
+          <span class="chip">🌶️ 毒舌模式</span>
+          <span class="chip">🪞 人物画像</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Flow ===== -->
+    <section class="section" id="flow">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">工作流</span>
+          <h2>三步，让记录开始生息</h2>
+        </div>
+        <div class="grid flow-grid">
+          <div class="step reveal">
+            <div class="step-num">01</div>
+            <h3>收集</h3>
+            <p>同步 Notion 或写入本地笔记，所有内容自动建立向量索引，沉入你的第二大脑。</p>
+          </div>
+          <div class="step reveal">
+            <div class="step-num">02</div>
+            <h3>对话</h3>
+            <p>提问时自动召回相关笔记，选一种 AI 视角，与你的过去深度对话、彼此印证。</p>
+          </div>
+          <div class="step reveal">
+            <div class="step-num">03</div>
+            <h3>沉淀</h3>
+            <p>把对话洞察存为 AI 笔记，复盘自动总结，认知随时间复利增长。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Privacy ===== -->
+    <section class="section section-dark" id="privacy">
+      <div class="container privacy-inner">
+        <div class="reveal">
+          <span class="eyebrow light">隐私优先</span>
+          <h2>你的数据，只属于你</h2>
+          <p class="lead light">
+            明镜见心运行在你自己的机器上。笔记、向量库、对话记录全部本地存储，
+            可搭配本地大模型（LM Studio）完全离线使用，也可按需接入在线模型。
+            没有云端账户，没有数据采集——真正的私人思考空间。
+          </p>
+          <ul class="check-list">
+            <li>本地 ChromaDB 向量库，数据不出本机</li>
+            <li>支持本地 / 在线模型自由切换</li>
+            <li>开源自托管，一切尽在掌握</li>
+          </ul>
+        </div>
+        <div class="privacy-badge reveal" aria-hidden="true">
+          <div class="lock">🔒</div>
+          <span>本地优先 · 离线可用</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section class="section" id="faq">
+      <div class="container faq-wrap">
+        <div class="section-head reveal">
+          <span class="eyebrow">常见问题</span>
+          <h2>你可能想知道</h2>
+        </div>
+        <div class="faq reveal">
+          <details>
+            <summary>明镜见心需要联网吗？<span class="q-ic">+</span></summary>
+            <p>不强制。搭配本地大模型（如 LM Studio）即可完全离线运行；若想用更强的在线模型，也可在设置中切换，请求只会发往你配置的模型服务。</p>
+          </details>
+          <details>
+            <summary>我的笔记会上传到云端吗？<span class="q-ic">+</span></summary>
+            <p>不会。所有笔记与向量库都存储在你本机，没有云端账户，也不向第三方上传数据。</p>
+          </details>
+          <details>
+            <summary>必须用 Notion 吗？<span class="q-ic">+</span></summary>
+            <p>不必。你可以接入 Notion，也可以只用本地笔记目录与自定义知识库；两者可并存。</p>
+          </details>
+          <details>
+            <summary>支持哪些大模型？<span class="q-ic">+</span></summary>
+            <p>支持任意 LM Studio 加载的本地模型，以及 OpenAI 兼容的在线模型（如 MiniMax 等），可在侧边栏或设置中一键切换。</p>
+          </details>
+          <details>
+            <summary>没有登录，多个人会看到同一份数据吗？<span class="q-ic">+</span></summary>
+            <p>当前为本地单人工具，数据即本机数据。登录与多用户能力在规划中，未登录浏览将仅展示空白参考界面。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section class="cta-band">
+      <div class="container cta-inner reveal">
+        <h2>把今天的思考，交给明镜见心</h2>
+        <p>让每一条笔记都有回响。</p>
+        <a class="btn btn-light btn-lg" href="http://localhost:3000" target="_blank" rel="noopener">立即进入应用</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a class="brand" href="#top">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-text">明镜见心 <em>Aimira</em></span>
+        </a>
+        <p>本地优先的 AI 第二大脑。</p>
+      </div>
+      <nav class="footer-cols">
+        <div>
+          <h4>产品</h4>
+          <a href="#features">核心能力</a>
+          <a href="#perspectives">AI 视角</a>
+          <a href="#flow">工作流</a>
+        </div>
+        <div>
+          <h4>资源</h4>
+          <a href="#faq">常见问题</a>
+          <a href="#privacy">隐私说明</a>
+          <a href="http://localhost:3000" target="_blank" rel="noopener">进入应用</a>
+        </div>
+      </nav>
+    </div>
+    <div class="container footer-bottom">
+      <span>© <span id="year"></span> 明镜见心 Aimira · 照见思想，沉淀认知</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -8,11 +8,15 @@ export interface ApiStatus {
   documents: number;
   collections: string[];
   databases: string[];
+  local_notes_path?: string;
+  local_notes_connected?: boolean;
+  notion_token_set?: boolean;
 }
 
 export interface ApiModels {
   models: string[];
   current: string;
+  provider?: "local" | "online";
 }
 
 export interface SearchResult {
@@ -53,6 +57,9 @@ export interface NoteItem {
   content: string;
   database: string;
   updated: string;
+  created: string;
+  tags: string;
+  status: string;
 }
 
 export interface AppSettings {
@@ -66,11 +73,20 @@ export interface AppSettings {
   };
   online?: {
     url: string;
+    api_key?: string;
+    default_model?: string;
   };
   sync: {
     interval: number;
     auto: boolean;
     auto_title: boolean;
+  };
+  review?: {
+    summary_prompt?: string;
+    auto_show_summary?: boolean;
+  };
+  local_notes?: {
+    path: string;
   };
   web: {
     port: number;

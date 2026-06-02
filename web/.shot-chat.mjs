@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1440, height: 1200 }, deviceScaleFactor: 2 });
+await page.goto('http://localhost:3000/chat', { waitUntil: 'networkidle', timeout: 30000 }).catch(e=>console.log('nav', e.message));
+await page.waitForTimeout(1200);
+const ta = page.locator('textarea.chat-input');
+await ta.click();
+await ta.fill('帮我复盘一下我最近关于学习的笔记，找出还有哪些盲点');
+await page.locator('.chat-send-btn').click();
+await page.waitForSelector('.msg-actions', { timeout: 180000 }).catch(e=>console.log('no actions', e.message));
+await page.waitForTimeout(2500);
+await page.screenshot({ path: '/tmp/sb-shots/chat-msg.png' });
+console.log('msg shot done');
+await browser.close();
