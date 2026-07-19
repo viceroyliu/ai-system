@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, Zap, Check, FileText, Sparkles, Flame,
@@ -14,8 +14,9 @@ import Sidebar from "@/components/Sidebar";
 import ActivityChart from "@/components/ActivityChart";
 import Markdown from "@/components/Markdown";
 import {
-  DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCenter,
-  type DragStartEvent, type DragEndEvent,
+  DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
+  type DragStartEvent, type DragEndEvent, type DragOverEvent,
+  type CollisionDetection,
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, rectSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -56,18 +57,75 @@ const AI_TIPS = [
 ];
 const VISIBLE_TIP_COUNT = 3;
 
-// ─── 可拖动 / 可调大小的小组件网格（概览页全部模块统一在此网格内） ───
+// ─── 可拖动 / 可调大小的小组件网格（纯 CSS grid + size，无 slot） ───
 const WIDGET_IDS = ["hero", "notion", "kb", "tip", "recent", "goals", "chart", "sys"] as const;
 type WidgetId = typeof WIDGET_IDS[number];
 type WSize = "sm" | "md" | "lg";
+/** 列跨度：sm=1 / md=2 / lg=4（6 列 grid） */
 const WSIZE_SPAN: Record<WSize, number> = { sm: 1, md: 2, lg: 4 };
+/** 行跨度：以 sm 高度为 1 行；md/lg 各占 2 行，使 lg 右侧可叠两排 sm */
+const WSIZE_ROW: Record<WSize, number> = { sm: 1, md: 2, lg: 2 };
 const WSIZE_LABEL: Record<WSize, string> = { sm: "小", md: "中", lg: "大" };
-// tip 在右上（原 goals 位），goals 在第二行（原 tip 位）
+/** 默认尺寸：hero 左大(lg=4列)；右侧 goals/sys/notion 均为 sm(1列)，自然留 1 格空白 */
 const DEFAULT_SIZES: Record<WidgetId, WSize> = {
-  hero: "lg", notion: "sm", kb: "sm", tip: "md",
-  recent: "md", goals: "md", chart: "lg", sys: "md",
+  hero: "lg", goals: "sm", sys: "sm", notion: "sm",
+  kb: "sm", tip: "md", recent: "md", chart: "lg",
 };
-const DEFAULT_ORDER: WidgetId[] = ["hero", "notion", "kb", "tip", "recent", "goals", "chart", "sys"];
+
+/**
+ * 默认顺序（6 列 grid + dense）：
+ *  hero(4) | goals(1) | sys(1)
+ *          | notion(1) | (自然空)
+ *  其余 kb / tip / recent / chart 顺排
+ */
+const DEFAULT_ORDER: WidgetId[] = ["hero", "goals", "sys", "notion", "kb", "tip", "recent", "chart"];
+
+const isWidgetId = (id: string): id is WidgetId =>
+  (WIDGET_IDS as readonly string[]).includes(id);
+
+/** 去重 + 补齐 8 个 widget，保持出现顺序 */
+function normalizeOrder(input: string[]): WidgetId[] {
+  const seen = new Set<WidgetId>();
+  const out: WidgetId[] = [];
+  for (const id of input) {
+    if (isWidgetId(id) && !seen.has(id)) {
+      seen.add(id);
+      out.push(id);
+    }
+  }
+  for (const id of WIDGET_IDS) {
+    if (!seen.has(id)) out.push(id);
+  }
+  return out;
+}
+
+/**
+ * localStorage 迁移：
+ * - string[] → 规范化 WidgetId[]
+ * - GridCell[]（旧）→ 丢弃 kind:'slot' 结构，只保留 widget id 顺序
+ */
+function migrateOrder(raw: unknown): WidgetId[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [...DEFAULT_ORDER];
+
+  if (typeof raw[0] === "string") {
+    return normalizeOrder(raw as string[]);
+  }
+
+  if (typeof raw[0] === "object" && raw[0] !== null && "kind" in (raw[0] as object)) {
+    const ids: string[] = [];
+    for (const c of raw as Array<Record<string, unknown>>) {
+      if (!c || typeof c !== "object") continue;
+      if (c.kind === "widget" && typeof c.id === "string") {
+        ids.push(c.id);
+      } else if (c.kind === "slot" && typeof c.filledBy === "string") {
+        ids.push(c.filledBy);
+      }
+    }
+    return ids.length ? normalizeOrder(ids) : [...DEFAULT_ORDER];
+  }
+
+  return [...DEFAULT_ORDER];
+}
 
 function WidgetToolbar({ id, size, setSize, dragHandle }: {
   id: string; size: WSize; setSize: (id: string, s: WSize) => void;
@@ -75,7 +133,7 @@ function WidgetToolbar({ id, size, setSize, dragHandle }: {
 }) {
   return (
     <div className="widget-toolbar">
-      {(["sm", "md", "lg"] as WSize[]).map(s => (
+      {(["sm", "md", "lg"] as WSize[]).map((s) => (
         <button key={s}
           className={`widget-size-btn${size === s ? " active" : ""}`}
           onClick={() => setSize(id, s)}
@@ -88,62 +146,242 @@ function WidgetToolbar({ id, size, setSize, dragHandle }: {
   );
 }
 
-function SortableWidget({ id, size, setSize, children }: {
-  id: string; size: WSize; setSize: (id: string, s: WSize) => void; children: React.ReactNode;
+function SortableWidget({ id, size, setSize, children, dragActive, activeSize, isOverTarget }: {
+  id: WidgetId; size: WSize; setSize: (id: string, s: WSize) => void;
+  children: React.ReactNode; dragActive: boolean; activeSize: WSize; isOverTarget: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  // useSortable 内含 droppable：arrayMove 重排 + 参与 coverageCollision 碰撞
+  // isOverTarget 由上层 onDragOver 驱动（比 hook 内 isOver 更稳，避免双 id 注册）
+  const {
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({
+    id,
+    animateLayoutChanges: () => false,
+  });
+
+  // 命中时仅占位框尺寸跟随正在拖动的 widget，widget 本身保持原 size
+  const showOver = dragActive && isOverTarget && !isDragging;
+  const placeholderSize = showOver ? activeSize : size;
+
   const style: React.CSSProperties = {
     gridColumn: `span ${WSIZE_SPAN[size]}`,
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.3 : 1,
+    gridRow: `span ${WSIZE_ROW[size]}`,
+    transform: dragActive ? undefined : CSS.Transform.toString(transform),
+    transition: dragActive ? undefined : transition,
   };
   return (
-    <div ref={setNodeRef} style={style} className={`widget-cell size-${size}`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={[
+        "widget-cell",
+        `size-${size}`,
+        isDragging ? "is-dragging" : "",
+        showOver ? "is-over" : "",
+      ].filter(Boolean).join(" ")}
+      data-widget-id={id}
+      data-placeholder-size={showOver ? placeholderSize : undefined}
+    >
       <WidgetToolbar id={id} size={size} setSize={setSize} dragHandle={{ ...attributes, ...listeners }} />
       {children}
+      {showOver && (
+        <div
+          className={`widget-placeholder size-${placeholderSize}`}
+          data-placeholder-size={placeholderSize}
+        >
+          <span>放这里 · {placeholderSize === "sm" ? "小" : placeholderSize === "md" ? "中" : "大"}</span>
+        </div>
+      )}
     </div>
   );
 }
 
 function WidgetGrid({ order, setOrder, sizes, setSize, render }: {
-  order: string[];
-  setOrder: (o: string[]) => void;
+  order: WidgetId[];
+  setOrder: (o: WidgetId[]) => void;
   sizes: Record<string, WSize>;
   setSize: (id: string, s: WSize) => void;
   render: Record<string, React.ReactNode>;
 }) {
-  const seq: string[] = order.length
-    ? order.filter(i => (WIDGET_IDS as readonly string[]).includes(i))
-    : [...DEFAULT_ORDER];
-  for (const i of WIDGET_IDS) if (!seq.includes(i)) seq.push(i);
-
+  const seq = order.length ? normalizeOrder(order) : [...DEFAULT_ORDER];
   const [activeId, setActiveId] = useState<string | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const [overId, setOverId] = useState<string | null>(null);
+  // 用 ref 记录上一次 over id，避免 onDragOver 同 id 重复 setState
+  const lastOverRef = useRef<string | null>(null);
+  // 节流：避免 onDragOver 高频 setState（pointer 在边界抖时）
+  const lastOverTsRef = useRef(0);
+  // 与 onDragOver 同步的稳定 over（历史字段；drop 以 collisionResultRef 为准）
+  const lastStableOverRef = useRef<string | null>(null);
+  // 拖动起点 rect（onDragStart 记录；保留作未来扩展/调试，coverageCollision 不再使用）
+  const activeStartRectRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  // collisionDetection 选出的 drop 目标（高亮 ≡ 松手目标，避免两套算法不一致）
+  const collisionResultRef = useRef<{ id: string; coverage: number } | null>(null);
 
-  function onDragEnd(e: DragEndEvent) {
-    const { active, over } = e;
-    if (over && active.id !== over.id) {
-      const oldIndex = seq.indexOf(String(active.id));
-      const newIndex = seq.indexOf(String(over.id));
-      if (oldIndex >= 0 && newIndex >= 0) setOrder(arrayMove(seq, oldIndex, newIndex));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const dragActive = activeId !== null;
+  const activeSize: WSize = activeId
+    ? (sizes[activeId] || DEFAULT_SIZES[activeId as WidgetId] || "sm")
+    : "sm";
+
+  /**
+   * pointerHits-only collision:
+   * 鼠标中心点 (pointerCoordinates) 必须严格落在某个 widget 矩形内，才算 drop 目标。
+   * 不再用覆盖率兜底——大模块边缘擦到小模块 ≥ 30% 时会提前提示，用户反馈不准。
+   *
+   * 结果写入 collisionResultRef，onDragEnd 复用（高亮 ≡ drop）
+   */
+  const coverageCollision: CollisionDetection = useCallback((args) => {
+    const activeIdStr = String(args.active.id);
+    if (!args.pointerCoordinates) {
+      collisionResultRef.current = null;
+      return [];
     }
-    setActiveId(null);
+
+    // ─── 只保留阶段 1: pointerHits — 鼠标中心点严格落在 widget 矩形内 ───
+    let bestId: string | null = null;
+
+    for (const container of args.droppableContainers) {
+      const id = String(container.id);
+      if (id === activeIdStr) continue;
+      const el = container.node.current;
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      const px = args.pointerCoordinates.x;
+      const py = args.pointerCoordinates.y;
+      if (px >= r.x && px <= r.x + r.width && py >= r.y && py <= r.y + r.height) {
+        bestId = id;
+        break; // 第一个命中即可
+      }
+    }
+
+    if (bestId) {
+      collisionResultRef.current = { id: bestId, coverage: 1.0 };
+      return [{ id: bestId }];
+    }
+    collisionResultRef.current = null;
+    return [];
+  }, []);
+
+  function onDragStart(e: DragStartEvent) {
+    setActiveId(String(e.active.id));
+    setOverId(null);
+    lastOverRef.current = null;
+    lastOverTsRef.current = 0;
+    lastStableOverRef.current = null;
+    collisionResultRef.current = null;
+    // 记录拖动起点 rect（保留作未来扩展/调试）
+    if (typeof document !== 'undefined') {
+      const activeEl = document.querySelector(`.widget-cell[data-widget-id="${e.active.id}"]`);
+      if (activeEl) {
+        const ar = activeEl.getBoundingClientRect();
+        activeStartRectRef.current = { x: ar.x, y: ar.y, width: ar.width, height: ar.height };
+      } else {
+        activeStartRectRef.current = null;
+      }
+    } else {
+      activeStartRectRef.current = null;
+    }
   }
 
-  const activeSize = activeId ? (sizes[activeId] || DEFAULT_SIZES[activeId as WidgetId] || "sm") : "sm";
+  function onDragOver(e: DragOverEvent) {
+    const raw = e.over ? String(e.over.id) : null;
+    const next = raw && raw !== String(e.active.id) ? raw : null;
+    // 同 id 跳过 setState（防闪烁）
+    if (next === lastOverRef.current) {
+      lastOverTsRef.current = Date.now();
+      return;
+    }
+    lastOverRef.current = next;
+    lastStableOverRef.current = next;
+    lastOverTsRef.current = Date.now();
+    setOverId(next);
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active } = e;
+    // 最小拖动距离检查 — 欧氏距离 < 20px 视为误触，不挪动
+    const MIN_DRAG_DIST = 20;
+    const dx = e.delta?.x ?? 0;
+    const dy = e.delta?.y ?? 0;
+    if (Math.hypot(dx, dy) < MIN_DRAG_DIST) {
+      setActiveId(null);
+      setOverId(null);
+      lastOverRef.current = null;
+      lastOverTsRef.current = 0;
+      lastStableOverRef.current = null;
+      activeStartRectRef.current = null;
+      collisionResultRef.current = null;
+      return;
+    }
+
+    // 优先用 collisionDetection 的结果（提示 = drop，避免两套 active 位置算法不一致）
+    let overIdFinal: string | null = collisionResultRef.current?.id ?? null;
+    collisionResultRef.current = null;
+
+    setActiveId(null);
+    setOverId(null);
+    lastOverRef.current = null;
+    lastOverTsRef.current = 0;
+    lastStableOverRef.current = null;
+    activeStartRectRef.current = null;
+    if (!overIdFinal || active.id === overIdFinal) return;
+
+    const activeStr = String(active.id);
+    const overStr = overIdFinal;
+    if (!isWidgetId(activeStr) || !isWidgetId(overStr)) return;
+
+    // 拖 widget → 落 widget：arrayMove 重排
+    const oi = seq.indexOf(activeStr);
+    const ni = seq.indexOf(overStr);
+    if (oi >= 0 && ni >= 0) {
+      setOrder(arrayMove(seq, oi, ni));
+    }
+    // 跨尺寸拖动时，按落点的 size 重排 active（避免 lg 拖到 sm 位导致 grid 排版乱）
+    const activeSize: WSize = sizes[activeStr] || DEFAULT_SIZES[activeStr] || "sm";
+    const overSize: WSize = sizes[overStr] || DEFAULT_SIZES[overStr] || "sm";
+    if (activeSize !== overSize) {
+      setSize(activeStr, overSize);
+    }
+  }
+
+  function onDragCancel() {
+    setActiveId(null);
+    setOverId(null);
+    lastOverRef.current = null;
+    lastOverTsRef.current = 0;
+    lastStableOverRef.current = null;
+    activeStartRectRef.current = null;
+    collisionResultRef.current = null;
+  }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter}
-      onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
-      onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={coverageCollision}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      onDragCancel={onDragCancel}
+    >
       <SortableContext items={seq} strategy={rectSortingStrategy}>
-        <div className="widget-grid">
-          {seq.map(id => (
-            <SortableWidget key={id} id={id} size={sizes[id] || DEFAULT_SIZES[id as WidgetId] || "sm"} setSize={setSize}>
-              {render[id]}
-            </SortableWidget>
-          ))}
+        <div className={`widget-grid${dragActive ? " is-dragging" : ""}`}>
+          {seq.map((id) => {
+            const size = sizes[id] || DEFAULT_SIZES[id] || "sm";
+            return (
+              <SortableWidget
+                key={id}
+                id={id}
+                size={size}
+                setSize={setSize}
+                dragActive={dragActive}
+                activeSize={activeSize}
+                isOverTarget={overId === id}
+              >
+                {render[id]}
+              </SortableWidget>
+            );
+          })}
         </div>
       </SortableContext>
       <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2,0,0,1)" }}>
@@ -175,10 +413,14 @@ export default function DashboardPage() {
   const [insLoading, setInsLoading] = useState(false);
   const [insHistory, setInsHistory] = useState<InsightRun[]>([]);
   const [histOpen, setHistOpen] = useState(false);
-  const [widgetOrder, setWidgetOrderState] = useState<string[]>([]);
+  const [widgetOrder, setWidgetOrderState] = useState<WidgetId[]>([]);
   const [widgetSizes, setWidgetSizesState] = useState<Record<string, WSize>>({});
   const [mounted, setMounted] = useState(false);
-  function setWidgetOrder(o: string[]) { setWidgetOrderState(o); try { localStorage.setItem("dash_widget_order", JSON.stringify(o)); } catch {} }
+  function setWidgetOrder(o: WidgetId[]) {
+    const next = normalizeOrder(o);
+    setWidgetOrderState(next);
+    try { localStorage.setItem("dash_widget_order", JSON.stringify(next)); } catch {}
+  }
   function setWidgetSize(id: string, s: WSize) {
     setWidgetSizesState(prev => { const next = { ...prev, [id]: s }; try { localStorage.setItem("dash_widget_sizes", JSON.stringify(next)); } catch {} return next; });
   }
@@ -205,7 +447,19 @@ export default function DashboardPage() {
     setMounted(true);
     try { const u = localStorage.getItem("ai_insight_usage"); if (u) setUsage(JSON.parse(u)); } catch {}
     try { const h = localStorage.getItem("ai_insight_history"); if (h) setInsHistory(JSON.parse(h)); } catch {}
-    try { const a = localStorage.getItem("dash_widget_order"); if (a) setWidgetOrderState(JSON.parse(a)); } catch {}
+    try {
+      const a = localStorage.getItem("dash_widget_order");
+      if (a) {
+        const migrated = migrateOrder(JSON.parse(a));
+        setWidgetOrderState(migrated);
+        // 写回 string[] schema，完成一次性升级（丢弃旧 slot cell）
+        try { localStorage.setItem("dash_widget_order", JSON.stringify(migrated)); } catch {}
+      } else {
+        setWidgetOrderState([...DEFAULT_ORDER]);
+      }
+    } catch {
+      setWidgetOrderState([...DEFAULT_ORDER]);
+    }
     try { const a = localStorage.getItem("dash_widget_sizes"); if (a) setWidgetSizesState(JSON.parse(a)); } catch {}
   }, []);
 
@@ -350,7 +604,7 @@ export default function DashboardPage() {
                 <button className="hero-history-btn" onClick={() => { setHistOpen(true); setInsOpen(true); }} title="查看历史记录">
                   <History size={13} /> 历史
                 </button>
-                <h2>今天想思考什么？</h2>
+                <h2>今日洞察</h2>
                 <p>选一个洞察视角，我用它来读你的笔记 · 共 {INSIGHTS.length} 个视角，可左右滑动</p>
                 <div className="insight-scroll">
                   {sortedInsights.map(ins => (

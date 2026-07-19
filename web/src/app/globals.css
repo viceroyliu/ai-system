@@ -1612,14 +1612,15 @@ html, body {
 .dash-sub { font-size: 12.5px; color: var(--sb-text-secondary); margin-top: 4px; }
 .dash-topbar-actions { display: flex; align-items: center; gap: 10px; }
 .dash-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,var(--brand-400),var(--brand-500)); color: #fff; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
-/* 全部模块在同一可拖拽网格内；1920×1080 基准固定高度（宽度仍由 sm/md/lg 列跨度控制）
-   小 sm：≈ stat-card      272×160
-   中 md：≈ quick-card     497×256
-   大 lg：≈ ai-hero        934×394 */
+/* 全部模块在同一可拖拽网格内；以 sm 为行高单位，md/lg 各占 2 行
+   小 sm：1 列 × 1 行
+   中 md：2 列 × 2 行
+   大 lg：4 列 × 2 行（右侧正好可叠两排 sm） */
 :root {
+  --widget-gap: 16px;
   --widget-h-sm: 160px;
-  --widget-h-md: 256px;
-  --widget-h-lg: 394px;
+  --widget-h-md: calc(var(--widget-h-sm) * 2 + var(--widget-gap)); /* 336 = 2 行 */
+  --widget-h-lg: calc(var(--widget-h-sm) * 2 + var(--widget-gap)); /* 336 = 2 行 */
 }
 
 .dash-content { flex: 1 1 auto; min-height: 0; padding: 18px 28px 32px; display: flex; flex-direction: column; overflow-y: auto; }
@@ -1655,21 +1656,73 @@ html, body {
 .reminder-list li { font-size: 12px; color: #78350f; padding-left: 14px; position: relative; line-height: 1.4; }
 .reminder-list li::before { content: "•"; position: absolute; left: 2px; color: #b45309; }
 
-/* ---- widget grid（可拖动 / 可调大小，固定 sm/md/lg 高度） ---- */
+/* ---- widget grid（纯 CSS grid + size；拖动时在 widget DOM 上显示占位，无独立 slot cell） ---- */
 .widget-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-  align-items: start;
+  gap: var(--widget-gap);
+  align-items: stretch;
   grid-auto-flow: row dense;
-  grid-auto-rows: auto;
+  grid-auto-rows: var(--widget-h-sm);
   flex: 0 0 auto;
+  position: relative;
 }
-.widget-cell { position: relative; min-width: 0; display: flex; overflow: hidden; }
+.widget-cell { position: relative; min-width: 0; display: flex; overflow: hidden; border-radius: 16px; }
 .widget-cell > *:not(.widget-toolbar) { flex: 1; min-width: 0; height: 100%; overflow: hidden; }
 .widget-cell.size-sm { height: var(--widget-h-sm); }
 .widget-cell.size-md { height: var(--widget-h-md); }
 .widget-cell.size-lg { height: var(--widget-h-lg); }
+.widget-cell.is-dragging { pointer-events: none; opacity: 0.2; }
+
+/* 拖动中：其他 widget 半透明 + 紫色虚线边框（可放这里） */
+.widget-grid.is-dragging .widget-cell:not(.is-dragging) {
+  opacity: 0.4;
+  outline: 1.5px dashed rgba(139, 92, 246, 0.5);
+  outline-offset: -1px;
+  transition: opacity 0.12s ease, outline-color 0.12s ease, box-shadow 0.12s ease;
+}
+/* 被 pointer 命中：明显紫色占位框 + 「放这里」 */
+.widget-cell.is-over {
+  opacity: 1 !important;
+  outline: 2px dashed #8b5cf6 !important;
+  outline-offset: 0;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+  z-index: 3;
+  /* 闪烁缓解：outline/opacity 用 transition 平滑过渡，避免突变 */
+  transition: opacity 80ms ease, outline-color 80ms ease, box-shadow 80ms ease;
+}
+/* 占位指示：显示在 widget 内部，覆盖一部分内容展示"放这里" */
+.widget-cell.is-over::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(139, 92, 246, 0.14);
+  z-index: 4;
+  pointer-events: none;
+  border-radius: inherit;
+  transition: opacity 100ms ease;
+}
+.widget-cell.is-over > .widget-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7c3aed;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  z-index: 5;
+  pointer-events: none;
+  text-align: center;
+}
+.widget-cell.is-over > .widget-placeholder > span {
+  background: rgba(139, 92, 246, 0.18);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.widget-grid.is-dragging .widget-cell.is-over .widget-toolbar { opacity: 0; }
+
 .widget-floating { z-index: 50; cursor: grabbing; transform: scale(1.03); box-shadow: 0 24px 50px -12px rgba(15,23,42,0.35); border-radius: 18px; }
 .widget-floating.size-sm { height: var(--widget-h-sm); }
 .widget-floating.size-md { height: var(--widget-h-md); }
@@ -1682,6 +1735,7 @@ html, body {
 .widget-size-btn.active { background: var(--sb-primary); color: #fff; }
 .widget-grip { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; color: var(--sb-text-muted); cursor: grab; border-left: 1px solid var(--sb-border); margin-left: 1px; }
 .widget-grip:active { cursor: grabbing; }
+
 @media (max-width: 900px) { .widget-cell { grid-column: span 6 !important; } }
 
 /* ---- bar chart ---- */
