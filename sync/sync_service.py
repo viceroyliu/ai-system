@@ -1357,6 +1357,7 @@ def api_settings_secret():
     return jsonify({
         "notion_token": config.get("notion", {}).get("token", ""),
         "local_notes_path": config.get("local_notes", {}).get("path", ""),
+        "online_api_key": config.get("online", {}).get("api_key", ""),
     })
 
 

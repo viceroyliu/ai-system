@@ -37,6 +37,9 @@ export const apiClient = {
   getModels: () => api<import('./types').ApiModels>('GET', '/models'),
   setModel: (model: string, provider?: 'local' | 'online') =>
     api<{ ok: boolean; model: string; provider: string }>('POST', '/model', { model, provider }),
+  /** 系统原生目录选择器（经 Flask 调 osascript 等），浏览器无法直接拿完整路径 */
+  pickDirectory: () =>
+    api<{ path?: string; cancelled?: boolean; ok?: boolean; error?: string }>('POST', '/pick_directory'),
   sync: () => api<import('./types').SyncResponse>('POST', '/sync'),
   reindex: () => api<{ success?: boolean; reindexed?: number; error?: string }>('POST', '/reindex'),
   search: (query: string, limit = 5) =>
@@ -48,13 +51,13 @@ export const apiClient = {
   createNote: (data: { title: string; database: string }) =>
     api<{ note: NoteItem }>('POST', '/notes', data),
   getSettings: () => api<import('./types').AppSettings>('GET', '/settings'),
-  getSettingsSecret: () => api<{ notion_token: string; local_notes_path: string }>('GET', '/settings/secret'),
+  getSettingsSecret: () => api<{ notion_token: string; local_notes_path: string; online_api_key?: string }>('GET', '/settings/secret'),
   saveSettings: (data: Partial<import('./types').AppSettings> & {
     notion_databases?: Record<string, { id: string; name: string }>;
     notion_token?: string;
     local_notes?: { path: string };
-    lm_studio?: { url: string; default_model: string };
-    online?: { url: string; api_key: string; default_model: string };
+    lm_studio?: { url?: string; default_model?: string };
+    online?: { url?: string; api_key?: string; default_model?: string };
     sync?: { interval: number; auto: boolean; auto_title: boolean };
     review?: { summary_prompt: string; auto_show_summary?: boolean };
   }) => api<{ ok: boolean }>('POST', '/settings', data),

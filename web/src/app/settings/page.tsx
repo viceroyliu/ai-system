@@ -150,8 +150,13 @@ export default function SettingsPage() {
       setReviewSummaryPrompt(s.review?.summary_prompt || "帮我总结今日复盘，并且给我下一步的建议。");
       setAutoShowSummary(s.review?.auto_show_summary !== false);
       setLocalNotesPath(s.local_notes?.path || "");
-      // 取明文用于编辑回显（本地单机应用）
-      try { const sec = await apiClient.getSettingsSecret(); setNotionTokenFull(sec.notion_token || ""); if (sec.local_notes_path) setLocalNotesPath(sec.local_notes_path); } catch {}
+      // 取明文用于编辑回显（本地单机应用）— 包含 online_api_key
+      try {
+        const sec = await apiClient.getSettingsSecret();
+        setNotionTokenFull(sec.notion_token || "");
+        if (sec.local_notes_path) setLocalNotesPath(sec.local_notes_path);
+        if (sec.online_api_key) setOnlineApiKey(sec.online_api_key);
+      } catch {}
       const raw = s.notion?.databases || {};
       const entries: Array<{ name: string; id: string; editing?: boolean }> = [];
       for (const [name, val] of Object.entries(raw)) {
@@ -175,17 +180,16 @@ export default function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => { loadSettings(); }, []);
 
+  // 经 Flask 代理拉 LM Studio 模型，避免浏览器直连 CORS 失败
   async function fetchLocalModels() {
     setFetchingLocal(true);
     try {
-      const base = lmUrl.replace(/\/$/, "");
-      const resp = await fetch(`${base}/models`);
-      if (!resp.ok) throw new Error("Failed");
-      const data = await resp.json();
-      const list: string[] = Array.isArray(data.data)
-        ? data.data.map((m: { id?: string }) => m.id || "").filter(Boolean)
-        : [];
-      setLocalModels(list);
+      // 写入 URL（带上当前 default_model 满足类型/后端合并）
+      await apiClient.saveSettings({
+        lm_studio: { url: lmUrl, default_model: defaultModel },
+      });
+      const m = await apiClient.getModels();
+      setLocalModels(m.models || []);
     } catch {
       setLocalModels([]);
     } finally {
@@ -193,24 +197,35 @@ export default function SettingsPage() {
     }
   }
 
+  // 经 Flask /api/online_models 代理，避免 CORS
   async function fetchOnlineModels() {
     setFetchingOnline(true);
     try {
-      const base = onlineUrl.replace(/\/$/, "");
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (onlineApiKey) headers["Authorization"] = `Bearer ${onlineApiKey}`;
-      const resp = await fetch(`${base}/models`, { headers });
-      if (!resp.ok) throw new Error("Failed");
-      const data = await resp.json();
-      const list: string[] = Array.isArray(data.data)
-        ? data.data.map((m: { id?: string }) => m.id || "").filter(Boolean)
-        : [];
+      await apiClient.saveSettings({
+        online: { url: onlineUrl, api_key: onlineApiKey, default_model: onlineDefaultModel },
+      });
+      const r = await apiClient.getOnlineModels();
+      const list = r.models || [];
       setOnlineModels(list);
       localStorage.setItem("aimira-online-models", JSON.stringify(list));
     } catch {
       setOnlineModels([]);
     } finally {
       setFetchingOnline(false);
+    }
+  }
+
+  /** 调用后端原生目录选择器，填入对应输入框 */
+  async function pickDirectory(target: "notes" | "source") {
+    try {
+      const r = await apiClient.pickDirectory();
+      if (r.cancelled || !r.path) return;
+      if (target === "notes") setLocalNotesPath(r.path);
+      else setNewSourcePath(r.path);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setSaveError(`选择目录失败: ${msg}（也可手动粘贴路径）`);
+      setTimeout(() => setSaveError(""), 4000);
     }
   }
 
@@ -470,12 +485,24 @@ export default function SettingsPage() {
                 {/* 本地笔记路径 */}
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: "var(--sb-text-secondary)", marginBottom: 6 }}>本地笔记路径</div>
-                  <input
-                    type="text"
-                    value={localNotesPath}
-                    onChange={e => setLocalNotesPath(e.target.value)}
-                    placeholder="例如：/Users/viceroy/notes"
-                    style={{ width: "100%", background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "8px 11px", fontSize: 12, fontFamily: "inherit", outline: "none", color: "var(--sb-text)", boxSizing: "border-box" }} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="text"
+                      data-testid="local-notes-path"
+                      value={localNotesPath}
+                      onChange={e => setLocalNotesPath(e.target.value)}
+                      placeholder="例如：/Users/viceroy/notes"
+                      style={{ flex: 1, minWidth: 0, background: "var(--sb-muted)", border: "1px solid var(--sb-border)", borderRadius: 8, padding: "8px 11px", fontSize: 12, fontFamily: "inherit", outline: "none", color: "var(--sb-text)", boxSizing: "border-box" }} />
+                    <button
+                      type="button"
+                      data-testid="pick-local-notes-path"
+                      className="btn-ghost"
+                      onClick={() => pickDirectory("notes")}
+                      style={{ display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", fontSize: 12, flexShrink: 0 }}
+                    >
+                      <FolderOpen size={12} /> 选择
+                    </button>
+                  </div>
                   <div style={{ fontSize: 10.5, color: "var(--sb-text-muted)", marginTop: 6 }}>
                     <FolderOpen size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
                     本地 Markdown 笔记所在目录，保存后用于「本地笔记」数据源。连接 / 断开请在左侧边栏对应数据源的指示灯上点击。
@@ -508,9 +535,25 @@ export default function SettingsPage() {
                       style={{ flex: 1, background: "white", border: "1px solid var(--sb-border)", borderRadius: 7, padding: "6px 10px", fontSize: 11, fontFamily: "inherit", outline: "none" }} />
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <input type="text" value={newSourcePath} onChange={e => setNewSourcePath(e.target.value)} placeholder="/Users/你/电子书目录"
-                      style={{ flex: 1, background: "white", border: "1px solid var(--sb-border)", borderRadius: 7, padding: "6px 10px", fontSize: 11, fontFamily: "inherit", outline: "none" }} />
+                    <input
+                      type="text"
+                      data-testid="new-source-path"
+                      value={newSourcePath}
+                      onChange={e => setNewSourcePath(e.target.value)}
+                      placeholder="/Users/你/电子书目录"
+                      style={{ flex: 1, minWidth: 0, background: "white", border: "1px solid var(--sb-border)", borderRadius: 7, padding: "6px 10px", fontSize: 11, fontFamily: "inherit", outline: "none" }}
+                    />
                     <button
+                      type="button"
+                      data-testid="pick-new-source-path"
+                      className="btn-ghost"
+                      onClick={() => pickDirectory("source")}
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, padding: "6px 10px", whiteSpace: "nowrap", flexShrink: 0 }}
+                    >
+                      <FolderOpen size={12} /> 选择
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         if (newSourceName.trim() && newSourcePath.trim()) {
                           addSource({ id: `custom-${Date.now()}`, name: newSourceName.trim(), type: "custom", path: newSourcePath.trim() });
