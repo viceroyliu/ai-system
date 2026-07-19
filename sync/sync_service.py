@@ -152,10 +152,38 @@ class NotionSync:
         self.chroma = get_chroma()
         self.collection = get_knowledge_collection()
 
-        # LM Studio / Ollama 配置
+        # LM Studio / Ollama 配置 (local provider)
         lm_cfg = config.get("lm_studio", {})
-        self.lm_url = lm_cfg.get("url", "http://localhost:1234/v1")
+        self.lm_url = lm_cfg.get("url", "http://localhost:1234/v1").rstrip("/")
         self.default_model = lm_cfg.get("default_model", "qwen2.5:14b-instruct")
+
+        # 线上 API 配置 (online provider) — 与 _resolve_llm 一致
+        online_cfg = config.get("online", {}) or {}
+        active = config.get("active_model") or {}
+        provider = active.get("provider") or "local"
+        if provider == "online":
+            # 线上带 api_key，用 online.url / api_key / default_model
+            self.online_url = (online_cfg.get("url") or "https://api.openai.com/v1").rstrip("/")
+            self.online_api_key = online_cfg.get("api_key") or ""
+            self.online_model = active.get("model") or online_cfg.get("default_model") or ""
+        else:
+            self.online_url = self.lm_url
+            self.online_api_key = ""
+            self.online_model = self.default_model
+
+    def _llm_request_target(self, model=None):
+        """解析 LLM 请求目标: (base_url, headers, model_name)。
+        有 online_api_key 时走线上 API 并带 Authorization；否则走本地 LM Studio。
+        """
+        if self.online_api_key:
+            target_url = self.online_url
+            target_model = model or self.online_model
+            target_headers = {"Authorization": f"Bearer {self.online_api_key}"}
+        else:
+            target_url = self.lm_url
+            target_model = model or self.default_model
+            target_headers = {}
+        return target_url, target_headers, target_model
 
     # ---- Notion API ----
     def query_database_all(self, db_id):
@@ -217,29 +245,45 @@ class NotionSync:
                 return key
         return "名称"
 
-    # ---- 获取可用模型（优先 default，否则取 LM Studio 第一个已加载的）----
+    # ---- 获取可用模型（local 可 fallback 到第一个能响应的；online 禁止静默换模型）----
     def _resolve_model(self, model=None):
-        model = model or self.default_model
+        """根据 active provider 解析模型名，并测连通性。
+
+        online provider 非 200 时不 fallback：返回原 model，让真实调用暴露 401/403/404。
+        仅 local provider 才 GET /models 找第一个可用模型。
+        """
+        target_url, target_headers, target_model = self._llm_request_target(model)
         try:
             resp = requests.post(
-                f"{self.lm_url}/chat/completions",
-                json={"model": model, "messages": [{"role": "user", "content": "1"}], "max_tokens": 1},
+                f"{target_url}/chat/completions",
+                headers=target_headers,
+                json={"model": target_model, "messages": [{"role": "user", "content": "1"}], "max_tokens": 1},
                 timeout=10,
             )
             if resp.status_code == 200:
-                return model
+                return target_model
+            # online 时非 200 → 不 fallback，让真实调用报错
+            if self.online_api_key:
+                log(f"    ⚠️ online model '{target_model}' 连通失败 (HTTP {resp.status_code}), 不 fallback")
+                return target_model
         except Exception:
             pass
-        # 回退：尝试 LM Studio 中第一个能响应的模型
+
+        # 仅 local provider 走 fallback
+        if self.online_api_key:
+            return target_model  # online, 不 fallback
+
+        # 本地 fallback: 列出 available models
         try:
-            r = requests.get(f"{self.lm_url}/models", timeout=5)
+            r = requests.get(f"{target_url}/models", headers=target_headers, timeout=5)
             if r.status_code == 200:
                 for m in r.json().get("data", []):
                     mid = m.get("id", "")
                     if not mid or mid.startswith(".") or "embed" in mid.lower():
                         continue
                     test = requests.post(
-                        f"{self.lm_url}/chat/completions",
+                        f"{target_url}/chat/completions",
+                        headers=target_headers,
                         json={"model": mid, "messages": [{"role": "user", "content": "1"}], "max_tokens": 1},
                         timeout=10,
                     )
@@ -248,16 +292,18 @@ class NotionSync:
                         return mid
         except Exception:
             pass
-        return model
+        return target_model  # 即使测不通也返回，让真实调用报更明确的错
 
     # ---- AI 标题生成 ----
     def generate_title(self, content, model=None):
         if not content:
             return "无标题"
         model = self._resolve_model(model)
+        target_url, target_headers, _ = self._llm_request_target(model)
         try:
             resp = requests.post(
-                f"{self.lm_url}/chat/completions",
+                f"{target_url}/chat/completions",
+                headers=target_headers,
                 json={
                     "model": model,
                     "messages": [
@@ -289,9 +335,12 @@ class NotionSync:
             self.config.get("review", {}).get("summary_prompt", self.DEFAULT_SUMMARY_PROMPT)
             .strip()
         )
+        # 用解析后的 online_url / lm_url（线上带 api_key）
+        target_url, target_headers, _ = self._llm_request_target(model)
         try:
             resp = requests.post(
-                f"{self.lm_url}/chat/completions",
+                f"{target_url}/chat/completions",
+                headers=target_headers,  # 关键: 线上带 Authorization
                 json={
                     "model": model,
                     "messages": [
@@ -313,8 +362,15 @@ class NotionSync:
                 summary = resp.json()["choices"][0]["message"]["content"].strip()
                 if summary and len(summary) < 600:
                     return summary
+            else:
+                provider = "online" if self.online_api_key else "local"
+                log(
+                    f"    ⚠️ AI 总结失败: provider={provider}, model={model}, "
+                    f"url={target_url}, status={resp.status_code}, body={resp.text[:200]}"
+                )
         except Exception as e:
-            log(f"    ⚠️ 摘要生成失败: {e}")
+            provider = "online" if self.online_api_key else "local"
+            log(f"    ⚠️ AI 总结失败: provider={provider}, model={model}, error={e}")
         return ""
 
     def update_page_title(self, page_id, title, title_property="名称"):
@@ -1012,6 +1068,82 @@ def api_set_model():
     global _lm_models_cache
     _lm_models_cache = []
     return jsonify({"ok": True, "model": model, "provider": provider})
+
+
+@app.route("/api/pick_directory", methods=["GET", "POST"])
+def api_pick_directory():
+    """打开系统原生文件夹选择器，返回完整绝对路径。
+    浏览器无法直接拿到本地路径，必须由本机 Flask 调原生对话框。
+    macOS: osascript choose folder
+    Linux: zenity / kdialog（若可用）
+    用户取消: { cancelled: true }
+    """
+    import platform
+    system = platform.system()
+    prompt = "选择目录"
+    try:
+        if request.is_json and request.json:
+            prompt = (request.json.get("prompt") or prompt).strip() or prompt
+    except Exception:
+        pass
+
+    try:
+        if system == "Darwin":
+            # 转义双引号，避免注入破坏 AppleScript
+            safe_prompt = prompt.replace("\\", "\\\\").replace('"', '\\"')
+            script = f'POSIX path of (choose folder with prompt "{safe_prompt}")'
+            result = subprocess.run(
+                ["osascript", "-e", script],
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if result.returncode != 0:
+                err = (result.stderr or result.stdout or "").strip()
+                # 用户点取消：User canceled. / -128
+                if (
+                    "User canceled" in err
+                    or "user cancelled" in err.lower()
+                    or "-128" in err
+                    or result.returncode == 1
+                ):
+                    return jsonify({"cancelled": True, "ok": False})
+                return jsonify({"error": err or "目录选择失败", "ok": False}), 500
+            path = (result.stdout or "").strip().rstrip("/")
+            if not path:
+                return jsonify({"cancelled": True, "ok": False})
+            return jsonify({"path": path, "ok": True})
+
+        if system == "Linux":
+            # 优先 zenity，其次 kdialog
+            for cmd in (
+                ["zenity", "--file-selection", "--directory", f"--title={prompt}"],
+                ["kdialog", "--getexistingdirectory", ".", prompt],
+            ):
+                try:
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+                except FileNotFoundError:
+                    continue
+                if result.returncode != 0:
+                    return jsonify({"cancelled": True, "ok": False})
+                path = (result.stdout or "").strip().rstrip("/")
+                if path:
+                    return jsonify({"path": path, "ok": True})
+                return jsonify({"cancelled": True, "ok": False})
+            return jsonify({
+                "error": "未找到 zenity 或 kdialog，请手动输入路径",
+                "ok": False,
+            }), 501
+
+        return jsonify({
+            "error": f"当前系统 ({system}) 不支持原生目录选择，请手动输入路径",
+            "ok": False,
+        }), 501
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "选择超时", "ok": False}), 504
+    except Exception as e:
+        log(f"❌ pick_directory 失败: {e}")
+        return jsonify({"error": str(e), "ok": False}), 500
 
 
 @app.route("/api/logs")
